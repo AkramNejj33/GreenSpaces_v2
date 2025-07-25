@@ -1,24 +1,42 @@
-import { Box, Button, TextField } from "@mui/material";
+import { useState } from "react";
+import { Box, Button, MenuItem, TextField, CircularProgress } from "@mui/material";
 import { Formik } from "formik";
 import * as yup from "yup";
 import useMediaQuery from "@mui/material/useMediaQuery";
 import Header from "../../components/Header";
+import axios from "axios";
 
 const Form = () => {
   const isNonMobile = useMediaQuery("(min-width:600px)");
+  const [isLoading, setIsLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
 
-  const handleFormSubmit = (values) => {
-    console.log(values);
+  const handleFormSubmit = async (values, { resetForm, setSubmitting }) => {
+    setIsLoading(true);
+    setErrorMessage("");
+    try {
+      await axios.post("http://127.0.0.1:8000/api/users/", values);
+      alert("Utilisateur créé avec succès !");
+      resetForm();
+    } catch (error) {
+      const errorMsg = error.response?.data?.detail || 
+                       error.response?.data?.message || 
+                       "Une erreur est survenue lors de la création de l'utilisateur.";
+      setErrorMessage(errorMsg);
+    } finally {
+      setIsLoading(false);
+      setSubmitting(false);
+    }
   };
 
   return (
-    <Box m="20px">
-      <Header title="CREATE USER" subtitle="Create a New User Profile" />
+    <Box m="20px" maxWidth="800px" mx="auto">
+      <Header title="CRÉER UN AGENT" subtitle="Créer un nouveau profil d'agent" />
 
       <Formik
-        onSubmit={handleFormSubmit}
         initialValues={initialValues}
-        validationSchema={checkoutSchema}
+        validationSchema={validationSchema}
+        onSubmit={handleFormSubmit}
       >
         {({
           values,
@@ -27,6 +45,8 @@ const Form = () => {
           handleBlur,
           handleChange,
           handleSubmit,
+          isSubmitting,
+          resetForm, // Destructure resetForm here
         }) => (
           <form onSubmit={handleSubmit}>
             <Box
@@ -35,38 +55,26 @@ const Form = () => {
               gridTemplateColumns="repeat(4, minmax(0, 1fr))"
               sx={{
                 "& > div": { gridColumn: isNonMobile ? undefined : "span 4" },
+                "& .MuiTextField-root": { mb: 1 },
               }}
             >
               <TextField
                 fullWidth
-                variant="filled"
+                variant="outlined"
                 type="text"
-                label="First Name"
+                label="Nom d'utilisateur"
                 onBlur={handleBlur}
                 onChange={handleChange}
-                value={values.firstName}
-                name="firstName"
-                error={!!touched.firstName && !!errors.firstName}
-                helperText={touched.firstName && errors.firstName}
+                value={values.username}
+                name="username"
+                error={!!touched.username && !!errors.username}
+                helperText={touched.username && errors.username}
                 sx={{ gridColumn: "span 2" }}
               />
               <TextField
                 fullWidth
-                variant="filled"
-                type="text"
-                label="Last Name"
-                onBlur={handleBlur}
-                onChange={handleChange}
-                value={values.lastName}
-                name="lastName"
-                error={!!touched.lastName && !!errors.lastName}
-                helperText={touched.lastName && errors.lastName}
-                sx={{ gridColumn: "span 2" }}
-              />
-              <TextField
-                fullWidth
-                variant="filled"
-                type="text"
+                variant="outlined"
+                type="email"
                 label="Email"
                 onBlur={handleBlur}
                 onChange={handleChange}
@@ -74,51 +82,66 @@ const Form = () => {
                 name="email"
                 error={!!touched.email && !!errors.email}
                 helperText={touched.email && errors.email}
-                sx={{ gridColumn: "span 4" }}
+                sx={{ gridColumn: "span 2" }}
               />
               <TextField
                 fullWidth
-                variant="filled"
-                type="text"
-                label="Contact Number"
+                variant="outlined"
+                type="password"
+                label="Mot de passe"
                 onBlur={handleBlur}
                 onChange={handleChange}
-                value={values.contact}
-                name="contact"
-                error={!!touched.contact && !!errors.contact}
-                helperText={touched.contact && errors.contact}
-                sx={{ gridColumn: "span 4" }}
+                value={values.password}
+                name="password"
+                error={!!touched.password && !!errors.password}
+                helperText={touched.password && errors.password}
+                sx={{ gridColumn: "span 2" }}
               />
               <TextField
+                select
                 fullWidth
-                variant="filled"
-                type="text"
-                label="Address 1"
+                variant="outlined"
+                label="Spécialité"
                 onBlur={handleBlur}
                 onChange={handleChange}
-                value={values.address1}
-                name="address1"
-                error={!!touched.address1 && !!errors.address1}
-                helperText={touched.address1 && errors.address1}
+                value={values.specialty}
+                name="specialty"
+                error={!!touched.specialty && !!errors.specialty}
+                helperText={touched.specialty && errors.specialty}
                 sx={{ gridColumn: "span 4" }}
-              />
-              <TextField
-                fullWidth
-                variant="filled"
-                type="text"
-                label="Address 2"
-                onBlur={handleBlur}
-                onChange={handleChange}
-                value={values.address2}
-                name="address2"
-                error={!!touched.address2 && !!errors.address2}
-                helperText={touched.address2 && errors.address2}
-                sx={{ gridColumn: "span 4" }}
-              />
+              >
+                {specialties.map((option) => (
+                  <MenuItem key={option.value} value={option.value}>
+                    {option.label}
+                  </MenuItem>
+                ))}
+              </TextField>
             </Box>
-            <Box display="flex" justifyContent="end" mt="20px">
-              <Button type="submit" color="secondary" variant="contained">
-                Create New User
+
+            {errorMessage && (
+              <Box mt={2} color="error.main">
+                {errorMessage}
+              </Box>
+            )}
+
+            <Box display="flex" justifyContent="end" mt="20px" gap={2}>
+              <Button
+                type="button"
+                color="inherit"
+                variant="outlined"
+                onClick={() => resetForm()} // Now resetForm is defined
+                disabled={isSubmitting || isLoading}
+              >
+                Réinitialiser
+              </Button>
+              <Button
+                type="submit"
+                color="secondary"
+                variant="contained"
+                disabled={isSubmitting || isLoading}
+                startIcon={isLoading ? <CircularProgress size={20} /> : null}
+              >
+                {isLoading ? "Création..." : "Créer l'agent"}
               </Button>
             </Box>
           </form>
@@ -128,27 +151,46 @@ const Form = () => {
   );
 };
 
-const phoneRegExp =
-  /^((\+[1-9]{1,4}[ -]?)|(\([0-9]{2,3}\)[ -]?)|([0-9]{2,4})[ -]?)*?[0-9]{3,4}[ -]?[0-9]{3,4}$/;
+const specialties = [
+  { value: "jardinier", label: "Jardinier" },
+  { value: "paysagiste", label: "Paysagiste" },
+  { value: "horticulteur", label: "Horticulteur" },
+  { value: "electronicien", label: "Électronicien" },
+  { value: "technicien_iot", label: "Technicien IoT" },
+  { value: "installateur_capteurs", label: "Installateur de capteurs" },
+  { value: "maintenance", label: "Agent de maintenance" },
+  { value: "irrigation", label: "Spécialiste irrigation" },
+  { value: "gestion_energie", label: "Gestion de l’énergie" },
+  { value: "autre", label: "Autre" },
+];
 
-const checkoutSchema = yup.object().shape({
-  firstName: yup.string().required("required"),
-  lastName: yup.string().required("required"),
-  email: yup.string().email("invalid email").required("required"),
-  contact: yup
+const validationSchema = yup.object().shape({
+  username: yup
     .string()
-    .matches(phoneRegExp, "Phone number is not valid")
-    .required("required"),
-  address1: yup.string().required("required"),
-  address2: yup.string().required("required"),
+    .min(3, "Le nom doit contenir au moins 3 caractères")
+    .max(100, "Le nom ne doit pas dépasser 100 caractères")
+    .required("Nom d'utilisateur requis"),
+  email: yup
+    .string()
+    .email("Adresse email invalide")
+    .required("Email requis"),
+  password: yup
+    .string()
+    .min(8, "Le mot de passe doit contenir au moins 8 caractères")
+    .max(128, "Le mot de passe ne doit pas dépasser 128 caractères")
+    .matches(
+      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/,
+      "Doit contenir au moins une majuscule, une minuscule et un chiffre"
+    )
+    .required("Mot de passe requis"),
+  specialty: yup.string().required("Spécialité requise"),
 });
+
 const initialValues = {
-  firstName: "",
-  lastName: "",
+  username: "",
   email: "",
-  contact: "",
-  address1: "",
-  address2: "",
+  password: "",
+  specialty: "autre",
 };
 
 export default Form;
