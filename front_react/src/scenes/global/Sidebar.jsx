@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ProSidebar, Menu, MenuItem } from "react-pro-sidebar";
 import { Box, IconButton, Typography, useTheme } from "@mui/material";
 import { Link } from "react-router-dom";
@@ -40,6 +40,35 @@ const Sidebar = () => {
   const colors = tokens(theme.palette.mode);
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [selected, setSelected] = useState("Dashboard");
+  
+  // États pour les données utilisateur dynamiques
+  const [userData, setUserData] = useState({
+    name: "Utilisateur", // Valeur par défaut
+    email: "",
+    role: "Admin"
+  });
+
+  // Fonction pour récupérer les données utilisateur stockées
+  const getUserData = () => {
+    const name = localStorage.getItem('userName') || sessionStorage.getItem('userName');
+    const email = localStorage.getItem('userEmail') || sessionStorage.getItem('userEmail');
+    const id = localStorage.getItem('userId') || sessionStorage.getItem('userId');
+    
+    return {
+      name: name || 'Utilisateur',
+      email: email || '',
+      id: id || '',
+      role: 'Admin' // Vous pouvez stocker le rôle aussi si nécessaire
+    };
+  };
+
+  // Charger les données utilisateur au montage du composant
+  useEffect(() => {
+    const user = getUserData();
+    setUserData(user);
+    
+    console.log('Données utilisateur chargées dans Sidebar:', user);
+  }, []);
 
   return (
     <Box
@@ -107,11 +136,21 @@ const Sidebar = () => {
                   fontWeight="bold"
                   sx={{ m: "10px 0 0 0" }}
                 >
-                  Boulghalegh Youssef
+                  {userData.name} {/* ← NOM DYNAMIQUE */}
                 </Typography>
                 <Typography variant="h5" color={colors.greenAccent[500]}>
-                  Admin
+                  {userData.role} {/* ← RÔLE DYNAMIQUE */}
                 </Typography>
+                {/* Optionnel : afficher l'email */}
+                {userData.email && (
+                  <Typography 
+                    variant="body2" 
+                    color={colors.grey[300]}
+                    sx={{ mt: "5px", fontSize: "12px" }}
+                  >
+                    {userData.email}
+                  </Typography>
+                )}
               </Box>
             </Box>
           )}

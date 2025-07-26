@@ -2,17 +2,35 @@
 
 html,
 body,
-#root,
-.app,
-.content {
+#root {
   height: 100%;
   width: 100%;
   font-family: 'Source Sans 3', sans-serif;
+  margin: 0;
+  padding: 0;
 }
 
 .app {
+  height: 100%;
+  width: 100%;
   display: flex;
   position: relative;
+}
+
+/* Pour les pages avec sidebar */
+.content {
+  height: 100%;
+  width: 100%;
+  overflow: auto;
+}
+
+/* Pour les pages d'authentification (sans sidebar) */
+.auth-content {
+  height: 100vh;
+  width: 100vw;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 ::-webkit-scrollbar{
