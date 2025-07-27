@@ -107,56 +107,31 @@ const Login = () => {
         // Login successful
         console.log('✅ Login successful!');
         
-        // Store JWT token
-        if (data.jwt) {
+        if (data.access && data.refresh) { // ← MODIFICATION: Vérifier les deux tokens
           const userData = {
-            id: data.user?.id,
-            name: data.user?.name,
-            email: formData.email,
-            token: data.jwt
+            access: data.access,      // ← NOUVEAU
+            refresh: data.refresh,    // ← NOUVEAU
+            user: {
+              id: data.user?.id,
+              name: data.user?.name,
+              email: data.user?.email,
+            }
           };
 
-          if (rememberMe) {
-            // localStorage (persistent)
-            localStorage.setItem('authToken', data.jwt);
-            localStorage.setItem('userEmail', formData.email);
-            
-            // User data
-            if (data.user) {
-              localStorage.setItem('userName', data.user.name);
-              localStorage.setItem('userId', data.user.id);
-            }
-          } else {
-            // sessionStorage (temporary)
-            sessionStorage.setItem('authToken', data.jwt);
-            sessionStorage.setItem('userEmail', formData.email);
-            
-            // User data
-            if (data.user) {
-              sessionStorage.setItem('userName', data.user.name);
-              sessionStorage.setItem('userId', data.user.id);
-            }
-          }
-          
-          console.log('Token stored:', data.jwt);
-          
-          // Mettre à jour le contexte d'authentification
-          login(userData);
+          // ← MODIFICATION: Passer rememberMe à la fonction login
+          login(userData, rememberMe);
           
           setSuccess('Login successful! Redirecting to dashboard...');
           
-          // Récupérer la page d'origine ou rediriger vers le dashboard
           const from = location.state?.from?.pathname || '/';
           
-          // Redirect after 1 second
           setTimeout(() => {
             navigate(from, { replace: true });
           }, 1000);
           
         } else {
-          setError('Token missing from server response');
+          setError('Tokens missing from server response');
         }
-        
       } else {
         // Server error
         console.log('❌ Server error:', data);

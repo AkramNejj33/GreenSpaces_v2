@@ -1,3 +1,4 @@
+// CORRECTION - ChangePassword (scenes/change-password/index.jsx)
 import React, { useState } from 'react';
 import {
   Box,
@@ -27,7 +28,9 @@ const ChangePassword = () => {
   const theme = useTheme();
   const colors = tokens(theme.palette.mode);
   const navigate = useNavigate();
-  const { user, logout } = useAuth();
+  
+  // ← CORRECTION: Appeler useAuth au niveau du composant
+  const { user, logout, apiCall, tokenService } = useAuth();
   
   const [formData, setFormData] = useState({
     current_password: '',
@@ -105,13 +108,9 @@ const ChangePassword = () => {
     try {
       console.log('Sending request to:', 'http://localhost:8000/api/change-password');
 
-      const response = await fetch('http://localhost:8000/api/change-password', {
+      // ← CORRECTION: Utiliser apiCall qui est maintenant disponible dans la portée du composant
+      const response = await apiCall('http://localhost:8000/api/change-password', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-        credentials: 'include', // Important for cookies (JWT)
         body: JSON.stringify(formData),
       });
 
@@ -161,7 +160,12 @@ const ChangePassword = () => {
       console.error('=== NETWORK ERROR ===');
       console.error('Error:', error);
       
-      if (error.name === 'TypeError' && error.message.includes('fetch')) {
+      if (error.message.includes('Session expired')) {
+        setError('Your session has expired. You will be redirected to login.');
+        setTimeout(() => {
+          navigate('/login');
+        }, 2000);
+      } else if (error.name === 'TypeError' && error.message.includes('fetch')) {
         setError('Unable to connect to server. Please check your connection.');
       } else {
         setError('Network error. Please try again later.');

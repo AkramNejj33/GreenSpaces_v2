@@ -28,7 +28,8 @@ const Topbar = () => {
   const colors = tokens(theme.palette.mode);
   const colorMode = useContext(ColorModeContext);
   const navigate = useNavigate();
-  const { logout } = useAuth();
+  
+  const { logout, user, tokenService } = useAuth();
   
   // État pour le menu dropdown du profil
   const [anchorEl, setAnchorEl] = useState(null);
@@ -48,7 +49,7 @@ const Topbar = () => {
   const handlePersonalInfo = () => {
     handleClose();
     console.log("Naviguer vers Info Personnel");
-    // navigate('/profile'); // Si vous avez une page de profil
+    // navigate('/profile');
   };
 
   const handleChangePassword = () => {
@@ -60,56 +61,39 @@ const Topbar = () => {
   const handleSettings = () => {
     handleClose();
     console.log("Naviguer vers Paramètres");
-    // navigate('/settings'); // Si vous avez une page de paramètres
+    // navigate('/settings');
   };
 
   const handleLogout = async () => {
     handleClose();
     
     console.log('=== DÉBUT DÉCONNEXION ===');
+    console.log('Utilisateur:', user?.email);
     
     try {
-      console.log('Envoi de la requête logout vers le backend...');
+      await logout();
       
-      // Envoyer la requête de déconnexion au backend
-      const response = await fetch('http://127.0.0.1:8000/api/logout', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-        credentials: 'include', // Important : inclut les cookies automatiquement
-      });
-
-      console.log('Status de la réponse logout:', response.status);
-
-      if (response.ok) {
-        const data = await response.json();
-        console.log('✅ Déconnexion backend réussie:', data.message);
-      } else {
-        console.warn('⚠️ Erreur lors du logout backend (status:', response.status, '), mais on continue la déconnexion locale');
-        
-        // Log des détails de l'erreur
-        try {
-          const errorData = await response.json();
-          console.warn('Détails erreur backend:', errorData);
-        } catch (parseError) {
-          console.warn('Impossible de parser la réponse d\'erreur');
+      console.log('✅ Déconnexion complète réussie');
+      
+      navigate('/login', { 
+        replace: true,
+        state: { 
+          message: 'You have been logged out successfully.' 
         }
-      }
+      });
+      
     } catch (error) {
-      console.error('❌ Erreur réseau lors de la déconnexion backend:', error);
-      console.log('On continue avec la déconnexion locale...');
+      console.error('❌ Erreur lors de la déconnexion:', error);
+      
+      navigate('/login', { 
+        replace: true,
+        state: { 
+          message: 'Session ended. Please log in again.' 
+        }
+      });
     }
     
-    // Utiliser la fonction logout du contexte qui nettoie tout
-    logout();
-    
-    console.log('✅ Données locales nettoyées via AuthContext');
     console.log('=== FIN DÉCONNEXION ===');
-    
-    // Rediriger vers la page de login
-    navigate('/login', { replace: true });
   };
 
   return (
@@ -127,7 +111,7 @@ const Topbar = () => {
       </Box>
       
       {/* right side */}
-      <Box display="flex">
+      <Box display="flex" alignItems="center">
         <IconButton onClick={colorMode.toggleColorMode}>
           {theme.palette.mode === "dark" ? (
             <DarkModeOutlined />
@@ -142,7 +126,7 @@ const Topbar = () => {
           <SettingsOutlined />
         </IconButton>
         
-        {/* Icône Profile avec style cohérent */}
+        {/* Icône Profile avec style cohérent comme les autres */}
         <IconButton onClick={handleProfileClick}>
           <PersonOutlined />
         </IconButton>
@@ -171,22 +155,46 @@ const Topbar = () => {
             }
           }}
         >
+          {/* Header avec info utilisateur */}
+          {user && (
+            <Box sx={{ px: 3, py: 2, borderBottom: `1px solid ${colors.grey[600]}` }}>
+              <Typography 
+                variant="body2" 
+                color={colors.grey[100]}
+                fontWeight="600"
+              >
+                {user.name}
+              </Typography>
+              <Typography 
+                variant="caption" 
+                color={colors.grey[300]}
+              >
+                {user.email}
+              </Typography>
+            </Box>
+          )}
+          
           {/* Info Personnel */}
           <MenuItem 
             onClick={handlePersonalInfo}
             sx={{
               padding: '12px 20px',
+              '&:hover': {
+                backgroundColor: 'rgba(255, 255, 255, 0.08)',
+              }
             }}
           >
             <AccountCircleOutlined 
               sx={{ 
                 mr: 2, 
-                fontSize: '20px'
+                fontSize: '20px',
+                color: colors.grey[100]
               }} 
             />
             <Typography 
               fontSize="14px"
               fontWeight="500"
+              color={colors.grey[100]}
             >
               Info Personnel
             </Typography>
@@ -197,17 +205,22 @@ const Topbar = () => {
             onClick={handleChangePassword}
             sx={{
               padding: '12px 20px',
+              '&:hover': {
+                backgroundColor: 'rgba(255, 255, 255, 0.08)',
+              }
             }}
           >
             <LockOutlined 
               sx={{ 
                 mr: 2, 
-                fontSize: '20px'
+                fontSize: '20px',
+                color: colors.grey[100]
               }} 
             />
             <Typography 
               fontSize="14px"
               fontWeight="500"
+              color={colors.grey[100]}
             >
               Change Password
             </Typography>
@@ -218,17 +231,22 @@ const Topbar = () => {
             onClick={handleSettings}
             sx={{
               padding: '12px 20px',
+              '&:hover': {
+                backgroundColor: 'rgba(255, 255, 255, 0.08)',
+              }
             }}
           >
             <ManageAccountsOutlined 
               sx={{ 
                 mr: 2, 
-                fontSize: '20px'
+                fontSize: '20px',
+                color: colors.grey[100]
               }} 
             />
             <Typography 
               fontSize="14px"
               fontWeight="500"
+              color={colors.grey[100]}
             >
               Paramètres
             </Typography>
@@ -245,17 +263,22 @@ const Topbar = () => {
             onClick={handleLogout}
             sx={{
               padding: '12px 20px',
+              '&:hover': {
+                backgroundColor: colors.redAccent[800],
+              }
             }}
           >
             <LogoutOutlined 
               sx={{ 
                 mr: 2, 
-                fontSize: '20px'
+                fontSize: '20px',
+                color: colors.redAccent[500]
               }} 
             />
             <Typography 
               fontSize="14px"
               fontWeight="500"
+              color={colors.grey[100]}
             >
               Déconnexion
             </Typography>

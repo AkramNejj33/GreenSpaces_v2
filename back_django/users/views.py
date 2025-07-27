@@ -7,7 +7,6 @@ from rest_framework.exceptions import AuthenticationFailed, ValidationError
 from rest_framework import status
 from .serializers import AdminSerializer
 from .models import Admin
-import jwt, datetime
 import secrets
 import string
 from django.core.mail import send_mail
@@ -15,7 +14,177 @@ from django.conf import settings
 from django.utils import timezone
 from datetime import timedelta
 
+# ← AJOUT: Imports pour Simple JWT
+from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+from rest_framework_simplejwt.authentication import JWTAuthentication
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import AllowAny 
+
+
+# ← MODIFICATION: Serializer personnalisé pour inclure les données utilisateur
+class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
+    @classmethod
+    def get_token(cls, user):
+        token = super().get_token(user)
+        
+        # Ajouter des claims personnalisés au token
+        token['name'] = user.name
+        token['email'] = user.email
+        
+        return token
+
+    def validate(self, attrs):
+        data = super().validate(attrs)
+        
+        # Ajouter les données utilisateur à la réponse
+        data['user'] = {
+            'id': self.user.id,
+            'name': self.user.name,
+            'email': self.user.email,
+        }
+        
+        return data
+
+
+# ← MODIFICATION: Vue de connexion personnalisée
+class CustomTokenObtainPairView(TokenObtainPairView):
+    authentication_classes = []       
+    permission_classes = [AllowAny] 
+    serializer_class = CustomTokenObtainPairSerializer
+
+    def post(self, request, *args, **kwargs):
+        try:
+            # Utiliser le serializer personnalisé
+            serializer = self.get_serializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
+            
+            # Obtenir les tokens et données utilisateur
+            tokens_data = serializer.validated_data
+            
+            # Créer la réponse
+            response = Response()
+            
+            # ← MAINTIEN DE LA COMPATIBILITÉ: Même format de réponse qu'avant
+            response.data = {
+                'access': tokens_data['access'],      # ← Nouveau: access token
+                'refresh': tokens_data['refresh'],    # ← Nouveau: refresh token
+                'jwt': tokens_data['access'],         # ← Compatibilité: même nom qu'avant
+                'message': 'Login successful',
+                'user': tokens_data['user']
+            }
+            
+            # ← OPTIONNEL: Garder le cookie pour la compatibilité
+            response.set_cookie(
+                key='jwt', 
+                value=tokens_data['access'],
+                httponly=True,
+                max_age=settings.SIMPLE_JWT['ACCESS_TOKEN_LIFETIME'].total_seconds()
+            )
+            
+            # ← NOUVEAU: Cookie pour le refresh token (plus sécurisé)
+            response.set_cookie(
+                key='refresh_token',
+                value=tokens_data['refresh'],
+                httponly=True,
+                max_age=settings.SIMPLE_JWT['REFRESH_TOKEN_LIFETIME'].total_seconds()
+            )
+            
+            return response
+            
+        except Exception as e:
+            return Response(
+                {'error': 'Invalid credentials'}, 
+                status=status.HTTP_401_UNAUTHORIZED
+            )
+
+
+# ← MODIFICATION: Vue Admin avec Simple JWT
+class AdminView(APIView):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        # Avec Simple JWT, l'utilisateur est automatiquement authentifié
+        user = request.user
+        serializer = AdminSerializer(user)
+        return Response(serializer.data)
+
+
+# ← MODIFICATION: Vue de déconnexion avec blacklisting
+class LogoutView(APIView):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        try:
+            # Obtenir le refresh token depuis les cookies ou le body
+            refresh_token = request.COOKIES.get('refresh_token') or request.data.get('refresh')
+            
+            if refresh_token:
+                # Blacklister le refresh token
+                token = RefreshToken(refresh_token)
+                token.blacklist()
+            
+            # Créer la réponse
+            response = Response()
+            response.delete_cookie('jwt')
+            response.delete_cookie('refresh_token')
+            response.data = {
+                'message': 'Logout successful'
+            }
+            return response
+            
+        except Exception as e:
+            response = Response()
+            response.delete_cookie('jwt')
+            response.delete_cookie('refresh_token')
+            response.data = {
+                'message': 'Logout successful'
+            }
+            return response
+
+
+# ← NOUVEAU: Vue pour rafraîchir le token
+class CustomTokenRefreshView(TokenRefreshView):
+    authentication_classes = []       
+    permission_classes = [AllowAny] 
+    def post(self, request, *args, **kwargs):
+        # Obtenir le refresh token depuis les cookies si pas dans le body
+        if 'refresh' not in request.data and 'refresh_token' in request.COOKIES:
+            request.data['refresh'] = request.COOKIES['refresh_token']
+        
+        response = super().post(request, *args, **kwargs)
+        
+        # Mettre à jour les cookies avec les nouveaux tokens
+        if response.status_code == 200:
+            data = response.data
+            
+            # Mettre à jour le cookie access token
+            response.set_cookie(
+                key='jwt',
+                value=data['access'],
+                httponly=True,
+                max_age=settings.SIMPLE_JWT['ACCESS_TOKEN_LIFETIME'].total_seconds()
+            )
+            
+            # Si un nouveau refresh token est fourni, mettre à jour le cookie
+            if 'refresh' in data:
+                response.set_cookie(
+                    key='refresh_token',
+                    value=data['refresh'],
+                    httponly=True,
+                    max_age=settings.SIMPLE_JWT['REFRESH_TOKEN_LIFETIME'].total_seconds()
+                )
+        
+        return response
+
+
+# ← GARDER L'ANCIEN: Vue d'inscription (pas de changement nécessaire)
 class RegisterView(APIView):
+    authentication_classes = []       
+    permission_classes = [AllowAny] 
     def post(self, request):
         serializer = AdminSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -23,89 +192,13 @@ class RegisterView(APIView):
         return Response(serializer.data)
 
 
-class LoginView(APIView):
-    def post(self, request):
-        email = request.data['email']
-        password = request.data['password']
-        
-        admin = Admin.objects.filter(email=email).first()
-        
-        if admin is None:
-            raise AuthenticationFailed('Admin not found!')
-        
-        if not admin.check_password(password):
-            raise AuthenticationFailed('Incorrect password!')
-        
-        payload = {
-            'id': admin.id,
-            'exp': datetime.datetime.utcnow() + datetime.timedelta(minutes=60),
-            'iat': datetime.datetime.utcnow()
-        }
-        
-        token = jwt.encode(payload, 'secret', algorithm='HS256')
-        
-        response = Response()
-        response.set_cookie(key='jwt', value=token, httponly=True)
-        
-        # Retourner les informations utilisateur avec le token
-        response.data = {
-            'jwt': token,  # ← Changé de 'jwt' à 'token' pour le frontend
-            'message': 'Login successful',
-            'user': {
-                'id': admin.id,
-                'name': admin.name,  # ← Ajoutez le nom
-                'email': admin.email,
-                # Ajoutez d'autres champs si nécessaire
-                # 'role': user.role,
-                # 'avatar': user.avatar,
-            }
-        }
-        
-        return response
-
-
-
-
-
-class AdminView(APIView):
-
-    def get(self, request):
-        token = request.COOKIES.get('jwt')
-
-        if not token:
-            raise AuthenticationFailed('Unauthenticated!')
-
-        try:
-            payload = jwt.decode(token, 'secret', algorithms=['HS256'])
-        except jwt.ExpiredSignatureError:
-            raise AuthenticationFailed('Unauthenticated!')
-
-        user = Admin.objects.filter(id=payload['id']).first()
-        serializer = AdminSerializer(user)
-        return Response(serializer.data)
-
-
-class LogoutView(APIView):
-    def post(self, request):
-        response = Response()
-        response.delete_cookie('jwt')
-        response.data = {
-            'message': 'success'
-        }
-        return response
-
-
-
-
-
-
-
-
-
+# ← GARDER L'ANCIEN: Vues de réinitialisation de mot de passe (pas de changement)
 class ForgotPasswordView(APIView):
     """
     Vue pour demander la réinitialisation du mot de passe
     """
+    authentication_classes = []       
+    permission_classes = [AllowAny] 
     def post(self, request):
         email = request.data.get('email')
         
@@ -177,6 +270,8 @@ class ResetPasswordView(APIView):
     """
     Vue pour réinitialiser le mot de passe avec le token
     """
+    authentication_classes = []       
+    permission_classes = [AllowAny] 
     def post(self, request):
         token = request.data.get('token')
         new_password = request.data.get('new_password')
@@ -234,24 +329,14 @@ class ResetPasswordView(APIView):
         }, status=status.HTTP_200_OK)
 
 
+# ← MODIFICATION: Vue de changement de mot de passe avec Simple JWT
 class ChangePasswordView(APIView):
-    """
-    Vue pour changer le mot de passe d'un admin connecté
-    """
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
+
     def post(self, request):
-        token = request.COOKIES.get('jwt')
-        
-        if not token:
-            raise AuthenticationFailed('Unauthenticated!')
-        
-        try:
-            payload = jwt.decode(token, 'secret', algorithms=['HS256'])
-        except jwt.ExpiredSignatureError:
-            raise AuthenticationFailed('Token expired!')
-        
-        admin = Admin.objects.filter(id=payload['id']).first()
-        if not admin:
-            raise AuthenticationFailed('Admin not found!')
+        # Avec Simple JWT, l'utilisateur est automatiquement authentifié
+        admin = request.user
         
         current_password = request.data.get('current_password')
         new_password = request.data.get('new_password')
@@ -302,26 +387,7 @@ class ChangePasswordView(APIView):
         }, status=status.HTTP_200_OK)
 
 
-class UserViewSet(viewsets.ModelViewSet):
-    queryset = User.objects.all()
-    serializer_class = UserSerializer
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+# ← GARDER L'ANCIEN: ViewSet pour les utilisateurs (pas de changement)
 class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
     serializer_class = UserSerializer
