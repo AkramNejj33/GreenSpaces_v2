@@ -23,6 +23,7 @@ import {
 } from "@mui/icons-material";
 import { tokens } from "../../theme";
 import { useAuth } from "../../AuthContext";
+import api, { tokenService } from '../../axiosConfig'; 
 
 const Login = () => {
   const theme = useTheme();
@@ -55,9 +56,8 @@ const Login = () => {
     e.stopPropagation();
     
     console.log('=== LOGIN START ===');
-    console.log('FormData:', formData);
     
-    // Client-side validations
+    // Validations...
     if (!formData.email.trim()) {
       setError('Email is required');
       return;
@@ -72,73 +72,47 @@ const Login = () => {
     setError('');
     
     try {
-      // Prepare data for Django API
-      const requestData = {
+      // ✅ SOLUTION SIMPLE: Utiliser Axios directement
+      const response = await api.post('/login', {
         email: formData.email.trim(),
         password: formData.password
-      };
-
-      console.log('Data sent to API:', requestData);
-      console.log('API URL:', 'http://localhost:8000/api/login');
-
-      // API call to Django backend
-      const response = await fetch('http://localhost:8000/api/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-        credentials: 'include',
-        body: JSON.stringify(requestData),
       });
 
-      console.log('Response status:', response.status);
+      console.log('✅ Login successful!');
+      
+      if (response.data.access && response.data.refresh) {
+        const userData = {
+          access: response.data.access,
+          refresh: response.data.refresh,
+          user: {
+            id: response.data.user?.id,
+            name: response.data.user?.name,
+            email: response.data.user?.email,
+          }
+        };
 
-      let data;
-      try {
-        data = await response.json();
-        console.log('Data received from server:', data);
-      } catch (parseError) {
-        console.error('JSON parsing error:', parseError);
-        throw new Error('Invalid server response (not JSON)');
-      }
-
-      if (response.ok) {
-        // Login successful
-        console.log('✅ Login successful!');
+        // ✅ Le token sera automatiquement configuré dans Axios !
+        login(userData, rememberMe);
         
-        if (data.access && data.refresh) { // ← MODIFICATION: Vérifier les deux tokens
-          const userData = {
-            access: data.access,      // ← NOUVEAU
-            refresh: data.refresh,    // ← NOUVEAU
-            user: {
-              id: data.user?.id,
-              name: data.user?.name,
-              email: data.user?.email,
-            }
-          };
-
-          // ← MODIFICATION: Passer rememberMe à la fonction login
-          login(userData, rememberMe);
-          
-          setSuccess('Login successful! Redirecting to dashboard...');
-          
-          const from = location.state?.from?.pathname || '/';
-          
-          setTimeout(() => {
-            navigate(from, { replace: true });
-          }, 1000);
-          
-        } else {
-          setError('Tokens missing from server response');
-        }
+        setSuccess('Login successful! Redirecting to dashboard...');
+        
+        const from = location.state?.from?.pathname || '/';
+        
+        setTimeout(() => {
+          navigate(from, { replace: true });
+        }, 1000);
+        
       } else {
-        // Server error
-        console.log('❌ Server error:', data);
-        
+        setError('Tokens missing from server response');
+      }
+    } catch (error) {
+      console.error('=== LOGIN ERROR ===');
+      
+      if (error.response) {
+        // Erreur du serveur
+        const data = error.response.data;
         let errorMessage = 'Incorrect email or password';
         
-        // Handle specific Django errors
         if (data.email) {
           errorMessage = Array.isArray(data.email) ? data.email[0] : data.email;
         } else if (data.password) {
@@ -147,26 +121,12 @@ const Login = () => {
           errorMessage = Array.isArray(data.non_field_errors) ? data.non_field_errors[0] : data.non_field_errors;
         } else if (data.detail) {
           errorMessage = data.detail;
-        } else if (data.error) {
-          errorMessage = data.error;
-        } else if (data.message) {
-          errorMessage = data.message;
         }
         
         setError(errorMessage);
-      }
-    } catch (error) {
-      console.error('=== NETWORK ERROR ===');
-      console.error('Error type:', error.name);
-      console.error('Error message:', error.message);
-      
-      // Specific error messages
-      if (error.name === 'TypeError' && error.message.includes('fetch')) {
+      } else if (error.request) {
+        // Erreur réseau
         setError('🔌 Unable to connect to server. Check that Django is running on localhost:8000');
-      } else if (error.message.includes('CORS')) {
-        setError('🚫 CORS error. Configure django-cors-headers in your backend.');
-      } else if (error.message.includes('NetworkError')) {
-        setError('🌐 Network error. Check your internet connection and server accessibility.');
       } else {
         setError(`❌ Connection error: ${error.message}`);
       }
