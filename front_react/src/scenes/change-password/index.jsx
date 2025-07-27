@@ -17,7 +17,8 @@ import {
   VisibilityOff,
   Lock,
   Security,
-  Save
+  Save,
+  ArrowBack
 } from "@mui/icons-material";
 import { tokens } from "../../theme";
 import { useAuth } from "../../AuthContext";
@@ -214,7 +215,7 @@ const ChangePassword = () => {
             >
               Change Password
             </Typography>
-            <Typography variant="h6" color={colors.grey[300]}>
+            <Typography variant="h6" color={colors.grey[300]} textAlign="center">
               Update your password for {user?.email}
             </Typography>
           </Box>
@@ -438,10 +439,11 @@ const ChangePassword = () => {
                 variant="text"
                 onClick={() => navigate('/')}
                 sx={{ 
-                  color: colors.blueAccent[500],
+                  color: colors.greenAccent[500],
                   textTransform: "none",
                   fontWeight: "bold"
                 }}
+                startIcon={<ArrowBack />}
               >
                 Back to Dashboard
               </Button>

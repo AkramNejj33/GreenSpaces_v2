@@ -17,7 +17,8 @@ import {
   VisibilityOff,
   Lock,
   VpnKey,
-  Save
+  Save,
+  ArrowBack
 } from "@mui/icons-material";
 import { tokens } from '../../theme';
 
@@ -27,7 +28,7 @@ const ResetPassword = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   
-  // Variables d'état manquantes ajoutées
+  // Variables d'état
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
@@ -57,7 +58,7 @@ const ResetPassword = () => {
     if (token) {
       setFormData(prev => ({ ...prev, token }));
     } else {
-      setError('Token de réinitialisation manquant ou invalide');
+      setError('Reset token is missing or invalid');
     }
   }, [searchParams]);
 
@@ -76,17 +77,17 @@ const ResetPassword = () => {
     
     // Validations côté client
     if (!formData.new_password || !formData.confirm_password) {
-      setError('Tous les champs sont requis');
+      setError('All fields are required');
       return;
     }
     
     if (formData.new_password !== formData.confirm_password) {
-      setError('Les mots de passe ne correspondent pas');
+      setError('Passwords do not match');
       return;
     }
     
     if (formData.new_password.length < 6) {
-      setError('Le mot de passe doit contenir au moins 6 caractères');
+      setError('Password must be at least 6 characters long');
       return;
     }
 
@@ -106,246 +107,257 @@ const ResetPassword = () => {
       const data = await response.json();
 
       if (response.ok) {
-        setMessage('Mot de passe réinitialisé avec succès ! Redirection vers la page de connexion...');
+        setMessage('Password reset successfully! Redirecting to login page...');
         setTimeout(() => {
           navigate('/login', { 
             state: { 
-              message: 'Mot de passe réinitialisé. Vous pouvez maintenant vous connecter.' 
+              message: 'Password reset successful. You can now log in with your new password.' 
             }
           });
         }, 2000);
       } else {
-        setError(data.error || 'Erreur lors de la réinitialisation');
+        setError(data.error || 'Error occurred during password reset');
       }
     } catch (error) {
-      console.error('Erreur:', error);
-      setError('Erreur de connexion au serveur');
+      console.error('Error:', error);
+      if (error.name === 'TypeError' && error.message.includes('fetch')) {
+        setError('Unable to connect to server. Please check your connection.');
+      } else {
+        setError('Network error. Please try again later.');
+      }
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <Box
-      display="flex"
-      justifyContent="center"
-      alignItems="center"
-      minHeight="100vh"
-      sx={{
-        backgroundColor: colors.primary[500],
-        padding: 2
-      }}
-    >
-      <Paper
-        elevation={3}
-        sx={{
-          padding: 4,
-          maxWidth: 400,
-          width: '100%',
-          backgroundColor: colors.primary[400],
-        }}
+    <Box m="20px">
+      <Box 
+        display="flex" 
+        justifyContent="center" 
+        alignItems="center" 
+        minHeight="60vh"
+        mt="40px"
       >
-        {/* Header with icon */}
-        <Box textAlign="center" mb="30px">
-          <Box
-            sx={{
-              width: 80,
-              height: 80,
-              borderRadius: "50%",
-              backgroundColor: colors.redAccent[500],
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              margin: "0 auto 20px auto"
-            }}
-          >
-            <VpnKey sx={{ fontSize: 40, color: "white" }} />
+        <Paper
+          elevation={3}
+          sx={{
+            padding: "40px",
+            maxWidth: "500px",
+            width: "100%",
+            backgroundColor: colors.primary[400],
+            borderRadius: "12px"
+          }}
+        >
+          {/* Header with icon */}
+          <Box textAlign="center" mb="30px">
+            <Box
+              sx={{
+                width: 80,
+                height: 80,
+                borderRadius: "50%",
+                backgroundColor: colors.redAccent[500],
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                margin: "0 auto 20px auto"
+              }}
+            >
+              <VpnKey sx={{ fontSize: 40, color: "white" }} />
+            </Box>
+            <Typography
+              variant="h3"
+              color={colors.grey[100]}
+              fontWeight="bold"
+              mb="10px"
+            >
+              Reset Password
+            </Typography>
+            <Typography variant="h6" color={colors.grey[300]} textAlign="center">
+              Enter your new password below
+            </Typography>
           </Box>
-          <Typography
-            variant="h3"
-            color={colors.grey[100]}
-            fontWeight="bold"
-            mb="10px"
-          >
-            Reset Password
-          </Typography>
-          <Typography variant="h6" color={colors.grey[300]}>
-            Enter your new password below
-          </Typography>
-        </Box>
 
-        {error && (
-          <Alert 
-            severity="error" 
-            sx={{ 
-              mb: 2,
-              backgroundColor: colors.redAccent[800],
-              color: colors.grey[100],
-              '& .MuiAlert-icon': {
-                color: colors.redAccent[500]
-              }
-            }}
-          >
-            {error}
-          </Alert>
-        )}
-
-        {message && (
-          <Alert 
-            severity="success" 
-            sx={{ 
-              mb: 2,
-              backgroundColor: colors.greenAccent[800],
-              color: colors.grey[100],
-              '& .MuiAlert-icon': {
-                color: colors.greenAccent[500]
-              }
-            }}
-          >
-            {message}
-          </Alert>
-        )}
-
-        <form onSubmit={handleSubmit}>
-          <TextField
-            fullWidth
-            variant="outlined"
-            type={showPasswords.new ? 'text' : 'password'}
-            label="New Password"
-            name="new_password"
-            value={formData.new_password}
-            onChange={handleChange}
-            required
-            sx={{ 
-              mb: "20px",
-              "& .MuiOutlinedInput-root": {
-                "& fieldset": {
-                  borderColor: colors.grey[600],
-                },
-                "&:hover fieldset": {
-                  borderColor: colors.redAccent[500],
-                },
-                "&.Mui-focused fieldset": {
-                  borderColor: colors.redAccent[500],
-                },
-              },
-              "& .MuiInputLabel-root": {
-                color: colors.grey[300],
-              },
-              "& .MuiInputBase-input": {
+          {/* Error and success messages */}
+          {error && (
+            <Alert 
+              severity="error" 
+              sx={{ 
+                mb: 2,
+                backgroundColor: colors.redAccent[800],
                 color: colors.grey[100],
-              },
-            }}
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <Lock sx={{ color: colors.grey[400] }} />
-                </InputAdornment>
-              ),
-              endAdornment: (
-                <InputAdornment position="end">
-                  <IconButton
-                    onClick={() => handleTogglePassword('new')}
-                    sx={{ color: colors.grey[400] }}
-                  >
-                    {showPasswords.new ? <VisibilityOff /> : <Visibility />}
-                  </IconButton>
-                </InputAdornment>
-              ),
-            }}
-          />
+                '& .MuiAlert-icon': {
+                  color: colors.redAccent[500]
+                }
+              }}
+            >
+              {error}
+            </Alert>
+          )}
 
-          <TextField
-            fullWidth
-            variant="outlined"
-            type={showPasswords.confirm ? 'text' : 'password'}
-            label="Confirm New Password"
-            name="confirm_password"
-            value={formData.confirm_password}
-            onChange={handleChange}
-            required
-            sx={{ 
-              mb: "30px",
-              "& .MuiOutlinedInput-root": {
-                "& fieldset": {
-                  borderColor: colors.grey[600],
-                },
-                "&:hover fieldset": {
-                  borderColor: colors.redAccent[500],
-                },
-                "&.Mui-focused fieldset": {
-                  borderColor: colors.redAccent[500],
-                },
-              },
-              "& .MuiInputLabel-root": {
-                color: colors.grey[300],
-              },
-              "& .MuiInputBase-input": {
+          {message && (
+            <Alert 
+              severity="success" 
+              sx={{ 
+                mb: 2,
+                backgroundColor: colors.greenAccent[800],
                 color: colors.grey[100],
-              },
-            }}
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <Lock sx={{ color: colors.grey[400] }} />
-                </InputAdornment>
-              ),
-              endAdornment: (
-                <InputAdornment position="end">
-                  <IconButton
-                    onClick={() => handleTogglePassword('confirm')}
-                    sx={{ color: colors.grey[400] }}
-                  >
-                    {showPasswords.confirm ? <VisibilityOff /> : <Visibility />}
-                  </IconButton>
-                </InputAdornment>
-              ),
-            }}
-          />
+                '& .MuiAlert-icon': {
+                  color: colors.greenAccent[500]
+                }
+              }}
+            >
+              {message}
+            </Alert>
+          )}
 
-          <Button
-            type="submit"
-            fullWidth
-            variant="contained"
-            disabled={loading || !formData.token}
-            sx={{
-              backgroundColor: colors.greenAccent[700],
-              color: colors.grey[100],
-              fontSize: "14px",
-              fontWeight: "bold",
-              padding: "10px 20px",
-              "&:hover": {
-                backgroundColor: colors.greenAccent[600],
-              },
-              "&:disabled": {
-                backgroundColor: colors.grey[500],
-              },
-            }}
-          >
-            {loading ? (
-              <CircularProgress size={24} color="inherit" />
-            ) : (
-              'Réinitialiser le mot de passe'
-            )}
-          </Button>
-        </form>
+          {/* Form */}
+          <Box component="form" onSubmit={handleSubmit}>
+            <TextField
+              fullWidth
+              variant="outlined"
+              type={showPasswords.new ? 'text' : 'password'}
+              label="New Password"
+              name="new_password"
+              value={formData.new_password}
+              onChange={handleChange}
+              required
+              sx={{ 
+                mb: "20px",
+                "& .MuiOutlinedInput-root": {
+                  "& fieldset": {
+                    borderColor: colors.grey[600],
+                  },
+                  "&:hover fieldset": {
+                    borderColor: colors.redAccent[500],
+                  },
+                  "&.Mui-focused fieldset": {
+                    borderColor: colors.redAccent[500],
+                  },
+                },
+                "& .MuiInputLabel-root": {
+                  color: colors.grey[300],
+                },
+                "& .MuiInputBase-input": {
+                  color: colors.grey[100],
+                },
+              }}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <Lock sx={{ color: colors.grey[400] }} />
+                  </InputAdornment>
+                ),
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <IconButton
+                      onClick={() => handleTogglePassword('new')}
+                      sx={{ color: colors.grey[400] }}
+                    >
+                      {showPasswords.new ? <VisibilityOff /> : <Visibility />}
+                    </IconButton>
+                  </InputAdornment>
+                ),
+              }}
+            />
 
-        <Box textAlign="center" mt={2}>
-          <Button
-            onClick={() => navigate('/login')}
-            sx={{
-              color: colors.greenAccent[500],
-              textDecoration: 'underline',
-              "&:hover": {
-                backgroundColor: 'transparent',
-                textDecoration: 'underline',
-              },
-            }}
-          >
-            Retour à la connexion
-          </Button>
-        </Box>
-      </Paper>
+            <TextField
+              fullWidth
+              variant="outlined"
+              type={showPasswords.confirm ? 'text' : 'password'}
+              label="Confirm New Password"
+              name="confirm_password"
+              value={formData.confirm_password}
+              onChange={handleChange}
+              required
+              sx={{ 
+                mb: "30px",
+                "& .MuiOutlinedInput-root": {
+                  "& fieldset": {
+                    borderColor: colors.grey[600],
+                  },
+                  "&:hover fieldset": {
+                    borderColor: colors.redAccent[500],
+                  },
+                  "&.Mui-focused fieldset": {
+                    borderColor: colors.redAccent[500],
+                  },
+                },
+                "& .MuiInputLabel-root": {
+                  color: colors.grey[300],
+                },
+                "& .MuiInputBase-input": {
+                  color: colors.grey[100],
+                },
+              }}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <Lock sx={{ color: colors.grey[400] }} />
+                  </InputAdornment>
+                ),
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <IconButton
+                      onClick={() => handleTogglePassword('confirm')}
+                      sx={{ color: colors.grey[400] }}
+                    >
+                      {showPasswords.confirm ? <VisibilityOff /> : <Visibility />}
+                    </IconButton>
+                  </InputAdornment>
+                ),
+              }}
+            />
+
+            {/* Submit Button */}
+            <Button
+              type="submit"
+              fullWidth
+              variant="contained"
+              disabled={loading || !formData.token}
+              sx={{
+                backgroundColor: colors.redAccent[500],
+                color: "white",
+                fontSize: "16px",
+                fontWeight: "bold",
+                padding: "12px",
+                mb: "20px",
+                "&:hover": {
+                  backgroundColor: colors.redAccent[600],
+                },
+                "&:disabled": {
+                  backgroundColor: colors.grey[600],
+                },
+              }}
+              startIcon={
+                loading ? (
+                  <CircularProgress size={20} sx={{ color: "white" }} />
+                ) : (
+                  <Save />
+                )
+              }
+            >
+              {loading ? "Resetting Password..." : "Reset Password"}
+            </Button>
+
+            {/* Back to login */}
+            <Box textAlign="center">
+              <Button
+                variant="text"
+                onClick={() => navigate('/login')}
+                sx={{ 
+                  color: colors.greenAccent[500],
+                  textTransform: "none",
+                  fontWeight: "bold"
+                }}
+                startIcon={<ArrowBack />}
+              >
+                Back to Login
+              </Button>
+            </Box>
+          </Box>
+        </Paper>
+      </Box>
     </Box>
   );
 };

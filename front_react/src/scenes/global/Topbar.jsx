@@ -21,6 +21,7 @@ import SearchIcon from "@mui/icons-material/Search";
 import LogoutOutlined from "@mui/icons-material/LogoutOutlined";
 import AccountCircleOutlined from "@mui/icons-material/AccountCircleOutlined";
 import ManageAccountsOutlined from "@mui/icons-material/ManageAccountsOutlined";
+import LockOutlined from "@mui/icons-material/LockOutlined";
 
 const Topbar = () => {
   const theme = useTheme();
@@ -48,6 +49,12 @@ const Topbar = () => {
     handleClose();
     console.log("Naviguer vers Info Personnel");
     // navigate('/profile'); // Si vous avez une page de profil
+  };
+
+  const handleChangePassword = () => {
+    handleClose();
+    console.log("Naviguer vers Change Password");
+    navigate('/change-password');
   };
 
   const handleSettings = () => {
@@ -182,6 +189,27 @@ const Topbar = () => {
               fontWeight="500"
             >
               Info Personnel
+            </Typography>
+          </MenuItem>
+          
+          {/* Change Password */}
+          <MenuItem 
+            onClick={handleChangePassword}
+            sx={{
+              padding: '12px 20px',
+            }}
+          >
+            <LockOutlined 
+              sx={{ 
+                mr: 2, 
+                fontSize: '20px'
+              }} 
+            />
+            <Typography 
+              fontSize="14px"
+              fontWeight="500"
+            >
+              Change Password
             </Typography>
           </MenuItem>
           
