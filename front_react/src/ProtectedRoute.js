@@ -11,7 +11,7 @@ const ProtectedRoute = ({ children }) => {
   const theme = useTheme();
   const colors = tokens(theme.palette.mode);
 
-  // Afficher un loader pendant la vérification
+  // ✅ SOLUTION: Attendre que la vérification soit terminée
   if (isLoading) {
     return (
       <Box
@@ -21,15 +21,18 @@ const ProtectedRoute = ({ children }) => {
         alignItems="center"
         minHeight="100vh"
         backgroundColor={colors.primary[500]}
-        gap={2}
       >
         <CircularProgress 
-          size={50} 
-          sx={{ color: colors.greenAccent[500] }}
+          size={60}
+          sx={{ 
+            color: colors.greenAccent[500],
+            mb: 2 
+          }} 
         />
         <Typography 
           variant="h6" 
           color={colors.grey[100]}
+          textAlign="center"
         >
           Vérification de l'authentification...
         </Typography>
@@ -37,13 +40,20 @@ const ProtectedRoute = ({ children }) => {
     );
   }
 
-  // Si pas authentifié, rediriger vers login
+  // ✅ Ne rediriger vers login que si la vérification est terminée ET l'utilisateur n'est pas authentifié
   if (!isAuthenticated) {
-    console.log('🔒 Accès refusé, redirection vers login');
-    return <Navigate to="/login" state={{ from: location }} replace />;
+    console.log('🚫 Utilisateur non authentifié, redirection vers login');
+    return (
+      <Navigate 
+        to="/login" 
+        state={{ from: location }} 
+        replace 
+      />
+    );
   }
 
-  // Si authentifié, afficher le composant enfant
+  // ✅ Utilisateur authentifié, afficher le contenu protégé
+  console.log('✅ Utilisateur authentifié, accès autorisé');
   return children;
 };
 

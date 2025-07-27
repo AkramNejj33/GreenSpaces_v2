@@ -181,6 +181,31 @@ class CustomTokenRefreshView(TokenRefreshView):
         return response
 
 
+
+class TokenStatusView(APIView):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
+    
+    def get(self, request):
+        """Vérifier si l'utilisateur est toujours authentifié"""
+        return Response({
+            'authenticated': True,
+            'user': {
+                'id': request.user.id,
+                'name': request.user.name,
+                'email': request.user.email,
+            }
+        })
+
+
+
+
+
+
+
+
+
+
 # ← GARDER L'ANCIEN: Vue d'inscription (pas de changement nécessaire)
 class RegisterView(APIView):
     authentication_classes = []       

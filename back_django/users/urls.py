@@ -6,6 +6,7 @@ from .views import (
     AdminView, 
     LogoutView,
     CustomTokenRefreshView,     # ← Nouveau
+    TokenStatusView,
     ForgotPasswordView,
     ResetPasswordView,
     ChangePasswordView,
@@ -26,6 +27,8 @@ urlpatterns = [
     # ← NOUVEAU: Refresh token endpoint
     path('token/refresh', CustomTokenRefreshView.as_view(), name='token_refresh'),
     
+    path('token/status', TokenStatusView.as_view(), name='token_status'),
+
     # ← GARDER L'ANCIEN: Autres endpoints
     path('admin', AdminView.as_view(), name='admin'),
     path('logout', LogoutView.as_view(), name='logout'),
