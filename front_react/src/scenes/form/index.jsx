@@ -4,7 +4,7 @@ import { Formik } from "formik";
 import * as yup from "yup";
 import useMediaQuery from "@mui/material/useMediaQuery";
 import Header from "../../components/Header";
-import axios from "axios";
+import api from "../../axiosConfig"; 
 
 const Form = () => {
   const isNonMobile = useMediaQuery("(min-width:600px)");
@@ -12,10 +12,11 @@ const Form = () => {
   const [errorMessage, setErrorMessage] = useState("");
 
   const handleFormSubmit = async (values, { resetForm, setSubmitting }) => {
+    console.log("Données envoyées :", values);
     setIsLoading(true);
     setErrorMessage("");
     try {
-      await axios.post("http://127.0.0.1:8000/api/users/", values);
+      await api.post("/users/", values);
       alert("Utilisateur créé avec succès !");
       resetForm();
     } catch (error) {
@@ -28,6 +29,7 @@ const Form = () => {
       setSubmitting(false);
     }
   };
+
 
   return (
     <Box m="20px" maxWidth="800px" mx="auto">

@@ -1,6 +1,8 @@
 from rest_framework import serializers
 from .models import User
 from .models import Admin
+from django.contrib.auth.hashers import make_password
+
 
 
 class AdminSerializer(serializers.ModelSerializer):
@@ -20,9 +22,14 @@ class AdminSerializer(serializers.ModelSerializer):
         return instance
 
 
-
-
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ['id', 'username', 'email', 'password', 'specialty', 'created_at']
+        extra_kwargs = {
+            'password': {'write_only': True}
+        }
+
+    def create(self, validated_data):
+        validated_data['password'] = make_password(validated_data['password'])
+        return super().create(validated_data)

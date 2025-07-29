@@ -17,7 +17,12 @@ from .views import (
 router = DefaultRouter()
 router.register(r'users', UserViewSet)
 
+
 urlpatterns = [
+    
+    # ← GARDER L'ANCIEN: Router pour les utilisateurs
+    path('', include(router.urls)),
+    
     # ← GARDER L'ANCIEN: Inscription
     path('register', RegisterView.as_view(), name='register'),
     
@@ -36,6 +41,5 @@ urlpatterns = [
     path('reset-password', ResetPasswordView.as_view(), name='reset_password'),
     path('change-password', ChangePasswordView.as_view(), name='change_password'),
     
-    # ← GARDER L'ANCIEN: Router pour les utilisateurs
-    path('', include(router.urls)),
+    
 ]
