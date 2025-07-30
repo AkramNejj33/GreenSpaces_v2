@@ -39,6 +39,7 @@ class User(models.Model):
     password = models.CharField(max_length=128)
     specialty = models.CharField(max_length=30, choices=SPECIALTY_CHOICES , default='autre') 
     created_at = models.DateTimeField(auto_now_add=True)
+    admin = models.ForeignKey(Admin, on_delete=models.CASCADE, null=True, blank=True)
 
     def __str__(self):
         return f"{self.username} - {self.get_specialty_display()}"
