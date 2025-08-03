@@ -1,9 +1,10 @@
-# chatbot/views.py - Version LangChain Simple
+# chatbot/views.py - Version avec gestion wrapper Admin
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
-from rest_framework_simplejwt.authentication import JWTAuthentication
+from .authentication import UniversalJWTAuthentication, AdminAuthWrapper
+
 from django.core.cache import cache
 from datetime import datetime
 import time
@@ -13,7 +14,7 @@ from .langchain_service import chatbot_service
 logger = logging.getLogger(__name__)
 
 class LangChainChatbotView(APIView):
-    authentication_classes = [JWTAuthentication]
+    authentication_classes = [UniversalJWTAuthentication]
     permission_classes = [IsAuthenticated]
     
     def __init__(self):
@@ -37,9 +38,9 @@ class LangChainChatbotView(APIView):
         """Récupère le contexte spécifique à l'utilisateur"""
         context_parts = []
         
-        # Déterminer le type d'utilisateur selon le modèle
-        if user.__class__.__name__ == 'Admin':
-            # C'est un Admin
+        # ✅ DÉTECTION AMÉLIORÉE: Admin web vs Employé mobile (avec wrapper)
+        if isinstance(user, AdminAuthWrapper) or (hasattr(user, 'name') and not hasattr(user, 'username')):
+            # C'est un Admin web (wrapper ou admin direct)
             context_parts.append(f"TYPE UTILISATEUR: ADMINISTRATEUR")
             context_parts.append(f"NOM: {user.name}")
             context_parts.append(f"EMAIL: {user.email}")
@@ -47,7 +48,7 @@ class LangChainChatbotView(APIView):
             context_parts.append(f"RÔLE: Peut donner des ordres et assigner des tâches aux employés selon leurs spécialités")
             
         else:
-            # C'est un User (Employé)
+            # C'est un Employé mobile (a 'username')
             context_parts.append(f"TYPE UTILISATEUR: EMPLOYÉ TERRAIN")
             context_parts.append(f"NOM: {user.username}")
             context_parts.append(f"EMAIL: {user.email}")
@@ -72,6 +73,18 @@ class LangChainChatbotView(APIView):
         
         return "\n".join(context_parts)
     
+    def _get_user_id(self, user):
+        """Récupère l'ID utilisateur de manière universelle"""
+        if isinstance(user, AdminAuthWrapper):
+            return user.id  # Le wrapper délègue vers l'admin original
+        return user.id
+    
+    def _get_user_name(self, user):
+        """Récupère le nom utilisateur de manière universelle"""
+        if isinstance(user, AdminAuthWrapper):
+            return user.name
+        return getattr(user, 'username', getattr(user, 'name', 'Unknown'))
+    
     def post(self, request):
         """Endpoint principal du chatbot LangChain"""
         try:
@@ -84,8 +97,12 @@ class LangChainChatbotView(APIView):
                     status=status.HTTP_400_BAD_REQUEST
                 )
             
+            # ✅ ID et nom universels (compatible wrapper)
+            user_id = self._get_user_id(user)
+            user_name = self._get_user_name(user)
+            
             # Vérifier le rate limiting
-            if not self._check_rate_limit(user.id):
+            if not self._check_rate_limit(user_id):
                 return Response(
                     {
                         'error': 'Trop de messages envoyés. Veuillez patienter une minute.',
@@ -94,8 +111,7 @@ class LangChainChatbotView(APIView):
                     status=status.HTTP_429_TOO_MANY_REQUESTS
                 )
             
-            # Logs pour monitoring
-            logger.info(f"LangChain chatbot - User {user.id} ({user.name}): {user_message[:100]}...")
+            logger.info(f"LangChain chatbot - User {user_id} ({user_name}): {user_message[:100]}...")
             
             # Construire le contexte utilisateur
             user_context = self._get_user_context(user)
@@ -105,7 +121,7 @@ class LangChainChatbotView(APIView):
             result = chatbot_service.get_response(
                 user_message=user_message,
                 user_context=user_context,
-                user_id=str(user.id)
+                user_id=str(user_id)
             )
             response_time = time.time() - start_time
             
@@ -137,13 +153,19 @@ class LangChainChatbotView(APIView):
 
 class ChatbotMemoryView(APIView):
     """Endpoint pour gérer la mémoire conversationnelle"""
-    authentication_classes = [JWTAuthentication]
+    authentication_classes = [UniversalJWTAuthentication]
     permission_classes = [IsAuthenticated]
+    
+    def _get_user_id(self, user):
+        """Récupère l'ID utilisateur de manière universelle"""
+        if isinstance(user, AdminAuthWrapper):
+            return user.id
+        return user.id
     
     def get(self, request):
         """Récupère des infos sur la mémoire de conversation"""
         try:
-            user_id = str(request.user.id)
+            user_id = str(self._get_user_id(request.user))
             memory_info = chatbot_service.get_memory_summary(user_id)
             
             return Response({
@@ -162,7 +184,7 @@ class ChatbotMemoryView(APIView):
     def delete(self, request):
         """Efface la mémoire de conversation"""
         try:
-            user_id = str(request.user.id)
+            user_id = str(self._get_user_id(request.user))
             chatbot_service.clear_user_memory(user_id)
             
             return Response({
@@ -181,7 +203,7 @@ class ChatbotMemoryView(APIView):
 
 class ChatbotHealthView(APIView):
     """Endpoint pour vérifier l'état du chatbot"""
-    authentication_classes = [JWTAuthentication]
+    authentication_classes = [UniversalJWTAuthentication]
     permission_classes = [IsAuthenticated]
     
     def get(self, request):

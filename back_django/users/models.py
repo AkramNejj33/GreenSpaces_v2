@@ -41,5 +41,12 @@ class User(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     admin = models.ForeignKey(Admin, on_delete=models.CASCADE)
 
+    reset_token = models.CharField(max_length=100, null=True, blank=True)
+    reset_token_expires = models.DateTimeField(null=True, blank=True)
+    
+    def set_password(self, password):
+        from django.contrib.auth.hashers import make_password
+        self.password = make_password(password)
+
     def __str__(self):
         return f"{self.username} - {self.get_specialty_display()}"
