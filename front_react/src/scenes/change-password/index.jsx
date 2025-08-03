@@ -29,8 +29,8 @@ const ChangePassword = () => {
   const colors = tokens(theme.palette.mode);
   const navigate = useNavigate();
   
-  // ← CORRECTION: Appeler useAuth au niveau du composant
-  const { user, logout, apiCall, tokenService } = useAuth();
+  // ✅ CORRECTION: Utiliser 'api' au lieu de 'apiCall' et 'tokenService'
+  const { user, logout, api } = useAuth();
   
   const [formData, setFormData] = useState({
     current_password: '',
@@ -106,41 +106,41 @@ const ChangePassword = () => {
     setSuccess('');
     
     try {
-      console.log('Sending request to:', 'http://localhost:8000/api/change-password');
+      console.log('Sending request to:', '/change-password');
 
-      // ← CORRECTION: Utiliser apiCall qui est maintenant disponible dans la portée du composant
-      const response = await apiCall('http://localhost:8000/api/change-password', {
-        method: 'POST',
-        body: JSON.stringify(formData),
+      // ✅ CORRECTION: Utiliser l'instance 'api' d'Axios au lieu de fetch
+      const response = await api.post('/change-password', formData);
+
+      console.log('Response:', response.data);
+
+      // ✅ Avec Axios, pas besoin de vérifier response.ok
+      setSuccess('Password changed successfully! You will be logged out for security reasons.');
+      
+      // Clear the form
+      setFormData({
+        current_password: '',
+        new_password: '',
+        confirm_password: ''
       });
-
-      console.log('Response status:', response.status);
-
-      const data = await response.json();
-      console.log('Response data:', data);
-
-      if (response.ok) {
-        setSuccess('Password changed successfully! You will be logged out for security reasons.');
-        
-        // Clear the form
-        setFormData({
-          current_password: '',
-          new_password: '',
-          confirm_password: ''
+      
+      // Log out the user and redirect to login after 3 seconds
+      setTimeout(() => {
+        logout();
+        navigate('/login', { 
+          state: { 
+            message: 'Password changed successfully. Please log in with your new password.' 
+          }
         });
-        
-        // Log out the user and redirect to login after 3 seconds
-        setTimeout(() => {
-          logout();
-          navigate('/login', { 
-            state: { 
-              message: 'Password changed successfully. Please log in with your new password.' 
-            }
-          });
-        }, 3000);
-        
-      } else {
-        // Handle error response
+      }, 3000);
+      
+    } catch (error) {
+      console.error('=== CHANGE PASSWORD ERROR ===');
+      console.error('Error:', error);
+      
+      // ✅ Gestion d'erreur Axios
+      if (error.response) {
+        // Erreur de réponse du serveur
+        const data = error.response.data;
         let errorMessage = 'Failed to change password';
         
         if (data.error) {
@@ -154,21 +154,12 @@ const ChangePassword = () => {
         }
         
         setError(errorMessage);
-      }
-      
-    } catch (error) {
-      console.error('=== NETWORK ERROR ===');
-      console.error('Error:', error);
-      
-      if (error.message.includes('Session expired')) {
-        setError('Your session has expired. You will be redirected to login.');
-        setTimeout(() => {
-          navigate('/login');
-        }, 2000);
-      } else if (error.name === 'TypeError' && error.message.includes('fetch')) {
+      } else if (error.request) {
+        // Erreur de réseau
         setError('Unable to connect to server. Please check your connection.');
       } else {
-        setError('Network error. Please try again later.');
+        // Autre erreur
+        setError('An unexpected error occurred. Please try again.');
       }
     } finally {
       setIsLoading(false);
