@@ -4,7 +4,8 @@ import Topbar from "./scenes/global/Topbar";
 import Sidebar from "./scenes/global/Sidebar";
 import Dashboard from "./scenes/dashboard";
 import Team from "./scenes/team";
-import Tasks from "./scenes/tasks";
+import Invoices from "./scenes/invoices";
+import Contacts from "./scenes/contacts";
 import Bar from "./scenes/bar";
 import Form from "./scenes/form";
 import Line from "./scenes/line";
@@ -20,7 +21,8 @@ import ProtectedRoute from "./ProtectedRoute";
 import ForgotPassword from "./scenes/forgot-password";
 import ResetPassword from "./scenes/reset-password";
 import ChangePassword from "./scenes/change-password";
-import TokenRefreshHandler from './TokenRefreshHandler';
+import Chatbot from "./components/Chatbot";
+import Tasks from "./scenes/tasks";
 import TaskList from "./scenes/taskList";
 
 
@@ -36,40 +38,50 @@ function App() {
 
   return (
     <AuthProvider>
-      <TokenRefreshHandler>
-        <ColorModeContext.Provider value={colorMode}>
-          <ThemeProvider theme={theme}>
-            <CssBaseline />
-            <div className="app">
-              {/* Afficher sidebar seulement si ce n'est pas une page d'auth */}
-              {!isAuthPage && <Sidebar isSidebar={isSidebar} />}
+      <ColorModeContext.Provider value={colorMode}>
+        <ThemeProvider theme={theme}>
+          <CssBaseline />
+          <div className="app">
+            {/* Afficher sidebar seulement si ce n'est pas une page d'auth */}
+            {!isAuthPage && <Sidebar isSidebar={isSidebar} />}
+            
+            <main className={isAuthPage ? "auth-content" : "content"}>
+              {/* Afficher topbar seulement si ce n'est pas une page d'auth */}
+              {!isAuthPage && <Topbar setIsSidebar={setIsSidebar} />}
               
-              <main className={isAuthPage ? "auth-content" : "content"}>
-                {/* Afficher topbar seulement si ce n'est pas une page d'auth */}
-                {!isAuthPage && <Topbar setIsSidebar={setIsSidebar} />}
-                
-                <Routes>
-                  {/* Routes publiques (sans authentification) */}
-                  <Route path="/login" element={<Login />} />
-                  <Route path="/register" element={<Register />} />
-                  <Route path="/forgot-password" element={<ForgotPassword />} />
-                  <Route path="/reset-password" element={<ResetPassword />} />
+              <Routes>
+                {/* Routes publiques (sans authentification) */}
+                <Route path="/login" element={<Login />} />
+                <Route path="/register" element={<Register />} />
+                <Route path="/forgot-password" element={<ForgotPassword />} />
+                <Route path="/reset-password" element={<ResetPassword />} />
 
-                  
-                  {/* Routes protégées (avec authentification) */}
-                  <Route path="/" element={
-                    <ProtectedRoute>
-                      <Dashboard />
-                    </ProtectedRoute>
-                  } />
-                  
-                  <Route path="/team" element={
-                    <ProtectedRoute>
-                      <Team />
-                    </ProtectedRoute>
-                  } />
-                  
-                  <Route path="/tasks" element={
+                
+                {/* Routes protégées (avec authentification) */}
+                <Route path="/" element={
+                  <ProtectedRoute>
+                    <Dashboard />
+                  </ProtectedRoute>
+                } />
+                
+                <Route path="/team" element={
+                  <ProtectedRoute>
+                    <Team />
+                  </ProtectedRoute>
+                } />
+                
+                <Route path="/contacts" element={
+                  <ProtectedRoute>
+                    <Contacts />
+                  </ProtectedRoute>
+                } />
+                
+                <Route path="/invoices" element={
+                  <ProtectedRoute>
+                    <Invoices />
+                  </ProtectedRoute>
+                } />
+                <Route path="/tasks" element={
                     <ProtectedRoute>
                       <Tasks />
                     </ProtectedRoute>
@@ -80,57 +92,57 @@ function App() {
                       <TaskList />
                     </ProtectedRoute>
                   } />
-
-                  <Route path="/form" element={
-                    <ProtectedRoute>
-                      <Form />
-                    </ProtectedRoute>
-                  } />
-                  
-                  <Route path="/bar" element={
-                    <ProtectedRoute>
-                      <Bar />
-                    </ProtectedRoute>
-                  } />
-                  
-                  <Route path="/pie" element={
-                    <ProtectedRoute>
-                      <Pie />
-                    </ProtectedRoute>
-                  } />
-                  
-                  <Route path="/line" element={
-                    <ProtectedRoute>
-                      <Line />
-                    </ProtectedRoute>
-                  } />
-                  
-                  <Route path="/calendar" element={
-                    <ProtectedRoute>
-                      <Calendar />
-                    </ProtectedRoute>
-                  } />
-                  
-                  <Route path="/geography" element={
-                    <ProtectedRoute>
-                      <Geography />
-                    </ProtectedRoute>
-                  } />
-                  
-                  <Route path="/change-password" element={
-                    <ProtectedRoute>
-                      <ChangePassword />
-                    </ProtectedRoute>
-                  } />
-                  
-                  {/* Route par défaut - rediriger vers login si pas authentifié */}
-                  <Route path="*" element={<Navigate to="/login" replace />} />
-                </Routes>
-              </main>
-            </div>
-          </ThemeProvider>
-        </ColorModeContext.Provider>
-      </TokenRefreshHandler>
+                
+                <Route path="/form" element={
+                  <ProtectedRoute>
+                    <Form />
+                  </ProtectedRoute>
+                } />
+                
+                <Route path="/bar" element={
+                  <ProtectedRoute>
+                    <Bar />
+                  </ProtectedRoute>
+                } />
+                
+                <Route path="/pie" element={
+                  <ProtectedRoute>
+                    <Pie />
+                  </ProtectedRoute>
+                } />
+                
+                <Route path="/line" element={
+                  <ProtectedRoute>
+                    <Line />
+                  </ProtectedRoute>
+                } />
+                
+                <Route path="/calendar" element={
+                  <ProtectedRoute>
+                    <Calendar />
+                  </ProtectedRoute>
+                } />
+                
+                <Route path="/geography" element={
+                  <ProtectedRoute>
+                    <Geography />
+                  </ProtectedRoute>
+                } />
+                
+                <Route path="/change-password" element={
+                  <ProtectedRoute>
+                    <ChangePassword />
+                  </ProtectedRoute>
+                } />
+                
+                {/* Route par défaut - rediriger vers login si pas authentifié */}
+                <Route path="*" element={<Navigate to="/login" replace />} />
+              </Routes>
+            </main>
+            {!isAuthPage && <Chatbot />}
+          </div>
+        </ThemeProvider>
+      </ColorModeContext.Provider>
     </AuthProvider>
   );
 }

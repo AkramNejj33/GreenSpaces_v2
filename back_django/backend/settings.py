@@ -34,12 +34,9 @@ REST_FRAMEWORK = {
         'rest_framework_simplejwt.authentication.JWTAuthentication',
     ],
     'DEFAULT_PERMISSION_CLASSES': [
-        #'rest_framework.permissions.IsAuthenticated',
-        'rest_framework.permissions.AllowAny',  # Temporaire pour test
+        'rest_framework.permissions.IsAuthenticated',
     ],
 }
-
-
 
 SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(minutes=30),  # Token court pour la sécurité
@@ -82,9 +79,11 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'rest_framework_simplejwt',
+    'rest_framework_simplejwt.token_blacklist',
     'rest_framework',
     'users',
-    'corsheaders'
+    'corsheaders',
+    'chatbot'
 ]
 
 MIDDLEWARE = [
@@ -169,7 +168,7 @@ CORS_ORIGIN_ALLOW_ALL = os.getenv('CORS_ORIGIN_ALLOW_ALL', 'True').lower() == 't
 CORS_ALLOW_CREDENTIALS = os.getenv('CORS_ALLOW_CREDENTIALS', 'True').lower() == 'true'
 CORS_ALLOW_ALL_ORIGINS = os.getenv('CORS_ALLOW_ALL_ORIGINS', 'True').lower() == 'true'
 
-FRONTEND_URL = os.getenv('FRONTEND_URL', 'http://localhost:3001')
+FRONTEND_URL = os.getenv('FRONTEND_URL', 'http://localhost:3000')
 
 # Email Configuration
 EMAIL_BACKEND = os.getenv('EMAIL_BACKEND', 'django.core.mail.backends.smtp.EmailBackend')
@@ -179,3 +178,86 @@ EMAIL_USE_TLS = os.getenv('EMAIL_USE_TLS', 'True').lower() == 'true'
 EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER', '')
 EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD', '')
 DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', EMAIL_HOST_USER)
+
+
+
+
+GROQ_API_KEY = os.getenv('GROQ_API_KEY', '')
+
+# Validation de la clé API
+if not GROQ_API_KEY:
+    import warnings
+    warnings.warn("GROQ_API_KEY n'est pas définie. Le chatbot ne fonctionnera pas.")
+
+
+
+
+
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        'LOCATION': 'chatbot-memory-cache',
+        'TIMEOUT': 86400,
+    }
+}
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '{levelname} {asctime} {module} {process:d} {thread:d} {message}',
+            'style': '{',
+        },
+        'simple': {
+            'format': '{levelname} {message}',
+            'style': '{',
+        },
+    },
+    'handlers': {
+        'chatbot_file': {
+            'level': 'INFO',
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': 'logs/chatbot.log',
+            'maxBytes': 1024*1024*10,  # 10MB
+            'backupCount': 5,
+            'formatter': 'verbose',
+        },
+        'console': {
+            'level': 'DEBUG',
+            'class': 'logging.StreamHandler',
+            'formatter': 'simple',
+        },
+    },
+    'loggers': {
+        'chatbot': {
+            'handlers': ['chatbot_file', 'console'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'langchain': {
+            'handlers': ['chatbot_file'],
+            'level': 'WARNING',  # Éviter trop de logs LangChain
+            'propagate': False,
+        },
+    },
+}
+
+# Créer le dossier logs s'il n'existe pas
+LOG_DIR = BASE_DIR / 'logs'
+LOG_DIR.mkdir(exist_ok=True)
+
+
+
+
+# Limite de rate limiting par utilisateur
+CHATBOT_RATE_LIMIT = int(os.getenv('CHATBOT_RATE_LIMIT', 12))  # messages par minute
+CHATBOT_RATE_WINDOW = int(os.getenv('CHATBOT_RATE_WINDOW', 60))  # secondes
+
+# Configuration LangChain
+LANGCHAIN_VERBOSE = os.getenv('LANGCHAIN_VERBOSE', 'False').lower() == 'true'
+LANGCHAIN_MEMORY_TOKEN_LIMIT = int(os.getenv('LANGCHAIN_MEMORY_TOKEN_LIMIT', 800))
+
+# Timeout pour les appels API
+CHATBOT_API_TIMEOUT = int(os.getenv('CHATBOT_API_TIMEOUT', 30))
+

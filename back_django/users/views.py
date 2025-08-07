@@ -20,6 +20,7 @@ from .models import Task
 from .serializers import TaskSerializer
 from rest_framework.permissions import IsAuthenticated
 
+
 # ← AJOUT: Imports pour Simple JWT
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
@@ -420,17 +421,14 @@ class ChangePasswordView(APIView):
 
 
 # ← GARDER L'ANCIEN: ViewSet pour les utilisateurs (pas de changement)
-class UserViewSet(viewsets.ModelViewSet):
+class UserViewSet(viewsets.ModelViewSet):  # ou GenericViewSet si tu veux personnaliser
     queryset = User.objects.all()
     serializer_class = UserSerializer
+    permission_classes = [IsAuthenticated]
 
-    def create(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
-        if not serializer.is_valid():
-            print("❌ Erreurs de validation :", serializer.errors)
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-        self.perform_create(serializer)
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
+    def perform_create(self, serializer):
+        serializer.save(admin=self.request.user)  
+
 
 
 class IsAdmin(permissions.BasePermission):
