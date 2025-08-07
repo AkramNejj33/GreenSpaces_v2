@@ -14,6 +14,12 @@ from django.conf import settings
 from django.utils import timezone
 from datetime import timedelta
 
+from rest_framework import generics, permissions
+from django_filters.rest_framework import DjangoFilterBackend
+from .models import Task
+from .serializers import TaskSerializer
+from rest_framework.permissions import IsAuthenticated
+
 # ← AJOUT: Imports pour Simple JWT
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
@@ -21,6 +27,7 @@ from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.permissions import AllowAny 
+from rest_framework.filters import SearchFilter, OrderingFilter
 
 
 # ← MODIFICATION: Serializer personnalisé pour inclure les données utilisateur
@@ -426,3 +433,25 @@ class UserViewSet(viewsets.ModelViewSet):
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 
+class IsAdmin(permissions.BasePermission):
+    def has_permission(self, request, view):
+        return request.user.is_authenticated and isinstance(request.user, Admin)
+class TaskListCreateView(generics.ListCreateAPIView):
+    queryset = Task.objects.all()
+    serializer_class = TaskSerializer
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated, IsAdmin]
+    filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
+    filterset_fields = ['type', 'status', 'assigned_to']
+    search_fields = ['title', 'description']
+    ordering_fields = ['scheduled_at', 'done_at']
+
+    def perform_create(self, serializer):
+        # Assigner automatiquement l'admin connecté comme créateur
+        serializer.save(created_by=self.request.user)
+
+class TaskDetailView(generics.RetrieveUpdateDestroyAPIView):
+    queryset = Task.objects.all()
+    serializer_class = TaskSerializer
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated, IsAdmin]

@@ -6,8 +6,7 @@ import "react-pro-sidebar/dist/css/styles.css";
 import { tokens } from "../../theme";
 import HomeOutlinedIcon from "@mui/icons-material/HomeOutlined";
 import PeopleOutlinedIcon from "@mui/icons-material/PeopleOutlined";
-import ContactsOutlinedIcon from "@mui/icons-material/ContactsOutlined";
-import ReceiptOutlinedIcon from "@mui/icons-material/ReceiptOutlined";
+import TaskOutlinedIcon from '@mui/icons-material/TaskOutlined';
 import PersonOutlinedIcon from "@mui/icons-material/PersonOutlined";
 import CalendarTodayOutlinedIcon from "@mui/icons-material/CalendarTodayOutlined";
 import HelpOutlineOutlinedIcon from "@mui/icons-material/HelpOutlineOutlined";
@@ -172,6 +171,13 @@ const Sidebar = () => {
               Data
             </Typography>
             <Item
+              title="Profile Form"
+              to="/form"
+              icon={<PersonOutlinedIcon />}
+              selected={selected}
+              setSelected={setSelected}
+            />
+            <Item
               title="Manage Team"
               to="/team"
               icon={<PeopleOutlinedIcon />}
@@ -179,19 +185,13 @@ const Sidebar = () => {
               setSelected={setSelected}
             />
             <Item
-              title="Contacts Information"
-              to="/contacts"
-              icon={<ContactsOutlinedIcon />}
+              title="Tasks Management"
+              to="/tasks"
+              icon={<TaskOutlinedIcon/>}
               selected={selected}
               setSelected={setSelected}
             />
-            <Item
-              title="Invoices Balances"
-              to="/invoices"
-              icon={<ReceiptOutlinedIcon />}
-              selected={selected}
-              setSelected={setSelected}
-            />
+           
 
             <Typography
               variant="h6"
@@ -200,13 +200,14 @@ const Sidebar = () => {
             >
               Pages
             </Typography>
-            <Item
-              title="Profile Form"
-              to="/form"
-              icon={<PersonOutlinedIcon />}
+             <Item
+              title="TaskList"
+              to="/taskList"
+              icon={<TaskOutlinedIcon />}
               selected={selected}
               setSelected={setSelected}
             />
+            
             <Item
               title="Calendar"
               to="/calendar"

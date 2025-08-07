@@ -4,8 +4,7 @@ import Topbar from "./scenes/global/Topbar";
 import Sidebar from "./scenes/global/Sidebar";
 import Dashboard from "./scenes/dashboard";
 import Team from "./scenes/team";
-import Invoices from "./scenes/invoices";
-import Contacts from "./scenes/contacts";
+import Tasks from "./scenes/tasks";
 import Bar from "./scenes/bar";
 import Form from "./scenes/form";
 import Line from "./scenes/line";
@@ -22,6 +21,7 @@ import ForgotPassword from "./scenes/forgot-password";
 import ResetPassword from "./scenes/reset-password";
 import ChangePassword from "./scenes/change-password";
 import TokenRefreshHandler from './TokenRefreshHandler';
+import TaskList from "./scenes/taskList";
 
 
 
@@ -69,18 +69,18 @@ function App() {
                     </ProtectedRoute>
                   } />
                   
-                  <Route path="/contacts" element={
+                  <Route path="/tasks" element={
                     <ProtectedRoute>
-                      <Contacts />
+                      <Tasks />
                     </ProtectedRoute>
                   } />
-                  
-                  <Route path="/invoices" element={
+
+                  <Route path="/taskList" element={
                     <ProtectedRoute>
-                      <Invoices />
+                      <TaskList />
                     </ProtectedRoute>
                   } />
-                  
+
                   <Route path="/form" element={
                     <ProtectedRoute>
                       <Form />
