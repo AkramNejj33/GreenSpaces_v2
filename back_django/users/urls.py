@@ -5,6 +5,8 @@ from .views import (
     CustomTokenObtainPairView,  # ← Remplace LoginView
     AdminView, 
     LogoutView,
+    TaskListCreateView,
+    TaskDetailView,
     CustomTokenRefreshView,     # ← Nouveau
     TokenStatusView,
     ForgotPasswordView,
@@ -41,5 +43,7 @@ urlpatterns = [
     path('reset-password', ResetPasswordView.as_view(), name='reset_password'),
     path('change-password', ChangePasswordView.as_view(), name='change_password'),
     
+    path('tasks/', TaskListCreateView.as_view(), name='task-list-create'),
+    path('tasks/<uuid:pk>/', TaskDetailView.as_view(), name='task-detail'),
     
 ]

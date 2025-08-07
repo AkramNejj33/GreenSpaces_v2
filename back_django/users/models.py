@@ -50,3 +50,33 @@ class User(models.Model):
 
     def __str__(self):
         return f"{self.username} - {self.get_specialty_display()}"
+
+
+
+
+# Modèle Task
+class Task(models.Model):
+    TYPE_CHOICES = [
+        ('arrosage', 'Arrosage'),
+        ('désherbage', 'Désherbage'),
+        ('taillage', 'Taillage'),
+    ]
+
+    STATUS_CHOICES = [
+        ('à_faire', 'À faire'),
+        ('en_cours', 'En cours'),
+        ('terminée', 'Terminée'),
+    ]
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    title = models.CharField(max_length=255)
+    type = models.CharField(max_length=20, choices=TYPE_CHOICES)
+    description = models.TextField()
+    assigned_to = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='tasks_assigned')
+    created_by = models.ForeignKey(Admin, on_delete=models.CASCADE, related_name='tasks_created')
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='à_faire')
+    scheduled_at = models.DateTimeField()
+    done_at = models.DateTimeField(null=True, blank=True)
+
+    def __str__(self):
+        return f"{self.title} - {self.get_type_display()} ({self.get_status_display()})"

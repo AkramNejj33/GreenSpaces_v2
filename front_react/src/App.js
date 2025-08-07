@@ -22,6 +22,8 @@ import ForgotPassword from "./scenes/forgot-password";
 import ResetPassword from "./scenes/reset-password";
 import ChangePassword from "./scenes/change-password";
 import Chatbot from "./components/Chatbot";
+import Tasks from "./scenes/tasks";
+import TaskList from "./scenes/taskList";
 
 
 
@@ -79,6 +81,17 @@ function App() {
                     <Invoices />
                   </ProtectedRoute>
                 } />
+                <Route path="/tasks" element={
+                    <ProtectedRoute>
+                      <Tasks />
+                    </ProtectedRoute>
+                  } />
+
+                  <Route path="/taskList" element={
+                    <ProtectedRoute>
+                      <TaskList />
+                    </ProtectedRoute>
+                  } />
                 
                 <Route path="/form" element={
                   <ProtectedRoute>
