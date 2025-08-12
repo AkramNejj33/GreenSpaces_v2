@@ -438,7 +438,7 @@ class TaskListCreateView(generics.ListCreateAPIView):
     queryset = Task.objects.all()
     serializer_class = TaskSerializer
     authentication_classes = [JWTAuthentication]
-    permission_classes = [IsAuthenticated, IsAdmin]
+    permission_classes = [AllowAny]
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
     filterset_fields = ['type', 'status', 'assigned_to']
     search_fields = ['title', 'description']
@@ -447,9 +447,11 @@ class TaskListCreateView(generics.ListCreateAPIView):
     def perform_create(self, serializer):
         # Assigner automatiquement l'admin connecté comme créateur
         serializer.save(created_by=self.request.user)
+    
+        
 
 class TaskDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = Task.objects.all()
     serializer_class = TaskSerializer
     authentication_classes = [JWTAuthentication]
-    permission_classes = [IsAuthenticated, IsAdmin]
+    permission_classes = [AllowAny]
