@@ -9,14 +9,22 @@ https://docs.djangoproject.com/en/5.2/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
+import os
 
 from pathlib import Path
-import os
+
 from dotenv import load_dotenv
 from datetime import timedelta
+# Puis vos variables d'environnement
+# Puis vos variables d'environnement
 
+os.environ['GDAL_LIBRARY_PATH'] = r"C:\OSGeo4W\bin\gdal310.dll"
+os.environ['GEOS_LIBRARY_PATH'] = r"C:\OSGeo4W\bin\geos_c.dll"
+os.environ['PROJ_LIB'] = r"C:\OSGeo4W\share\proj"
 # Load environment variables from .env file
 load_dotenv()
+
+
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -80,10 +88,12 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'rest_framework_simplejwt',
     'rest_framework_simplejwt.token_blacklist',
+    'django.contrib.gis',  # PostGIS support
     'rest_framework',
     'users',
     'corsheaders',
-    'chatbot'
+    'chatbot',
+    'green_spaces',
 ]
 
 MIDDLEWARE = [
@@ -106,6 +116,7 @@ TEMPLATES = [
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
+                "django.template.context_processors.debug",
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
@@ -148,10 +159,11 @@ AUTH_PASSWORD_VALIDATORS = [
 
 # Internationalization
 # https://docs.djangoproject.com/en/5.2/topics/i18n/
-LANGUAGE_CODE = 'en-us'
-TIME_ZONE = 'UTC'
+LANGUAGE_CODE = "fr-fr"  # Français
+TIME_ZONE = "Africa/Casablanca"  # Fuseau horaire du Maroc
 USE_I18N = True
 USE_TZ = True
+
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
