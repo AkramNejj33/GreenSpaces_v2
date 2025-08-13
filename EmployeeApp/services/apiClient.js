@@ -1,7 +1,7 @@
 // apiClient.js - Version mise à jour avec support chatbot
 import AuthService from './authService';
 
-const API_BASE_URL = 'http://192.168.1.43:8000'; // ✅ Mise à jour avec votre IP
+const API_BASE_URL = 'http://192.168.1.10:8000'; // ✅ Mise à jour avec votre IP
 
 class ApiClient {
   constructor() {
@@ -130,12 +130,25 @@ class ApiClient {
   // Exemple d'autres méthodes API que vous pourriez avoir
   async getEmployeeTasks() {
     try {
-      const response = await this.get('/api/employee/tasks/');
+      const response = await this.get('/api/tasks/');
       return await response.json();
     } catch (error) {
       throw new Error('Erreur lors de la récupération des tâches');
     }
   }
+ // Ajoutez cette méthode dans votre classe ApiClient
+
+async getNotes() {
+    try {
+      const response = await axios.get(`http://192.168.1.10:8000/api/tasks/`);
+      return response.data;
+    } catch (error) {
+      console.error('Erreur lors de la récupération des notes:', error);
+      throw error;
+    }
+  }
+
+   
 
   async createTask(taskData) {
     try {

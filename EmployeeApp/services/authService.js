@@ -1,7 +1,7 @@
 // services/authService.js
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const API_BASE_URL = 'http://192.168.1.43:8000'; // Votre IP locale
+const API_BASE_URL = 'http://192.168.1.10:8000'; // Votre IP locale
 
 class AuthService {
   constructor() {

@@ -27,7 +27,7 @@ const EmployeeLoginScreen = ({ navigation, route }) => {
   const [showPassword, setShowPassword] = useState(false);
 
   // ✅ IP mise à jour
-  const API_BASE_URL = 'http://192.168.1.43:8000';
+  const API_BASE_URL = 'http://192.168.1.10:8000';
 
   const handleInputChange = (field, value) => {
     setFormData(prev => ({
