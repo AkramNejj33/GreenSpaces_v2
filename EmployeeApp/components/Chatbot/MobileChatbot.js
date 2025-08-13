@@ -258,11 +258,11 @@ const MobileChatbot = () => {
     
     return userData.username || userData.name || 'Utilisateur';
   };
-
+  /*
   if (!isAuthenticated) {
     return null;
   }
-
+  */
   return (
     <>
       {/* Modal Chat */}

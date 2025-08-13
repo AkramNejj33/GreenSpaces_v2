@@ -1,4 +1,3 @@
-// screens/HomeScreen.js - Version corrigée avec gestion SafeAreaView
 import React, { useState, useEffect } from 'react';
 import {
   View,
@@ -138,7 +137,6 @@ const HomeScreen = ({ navigation }) => {
   if (isLoading) {
     return (
       <SafeAreaView style={styles.loadingContainer}>
-        {/* ✅ StatusBar pour contrôler l'apparence */}
         <StatusBar barStyle="dark-content" backgroundColor="#f9fafb" />
         <View style={styles.loadingContent}>
           <Ionicons name="leaf" size={48} color="#10b981" />
@@ -156,7 +154,6 @@ const HomeScreen = ({ navigation }) => {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* ✅ StatusBar configuré pour éviter les conflits */}
       <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
       
       <ScrollView
@@ -167,7 +164,6 @@ const HomeScreen = ({ navigation }) => {
         }
         showsVerticalScrollIndicator={false}
       >
-        {/* ✅ Header avec padding top sécurisé */}
         <View style={styles.header}>
           <View style={styles.welcomeSection}>
             <Text style={styles.greeting}>{getGreeting()} !</Text>
@@ -187,7 +183,6 @@ const HomeScreen = ({ navigation }) => {
           </TouchableOpacity>
         </View>
 
-        {/* Stats Cards */}
         <View style={styles.statsContainer}>
           <View style={styles.statsCard}>
             <View style={styles.statItem}>
@@ -195,7 +190,7 @@ const HomeScreen = ({ navigation }) => {
                 <Ionicons name="checkmark-circle" size={24} color="#ffffff" />
               </View>
               <Text style={styles.statNumber}>{stats.tasksCompleted}</Text>
-              <Text style={styles.statLabel}>Tâches complétées</Text>
+              <Text style={styles.statLabel}>Tâches</Text>
             </View>
           </View>
 
@@ -220,7 +215,6 @@ const HomeScreen = ({ navigation }) => {
           </View>
         </View>
 
-        {/* Quick Actions */}
         <View style={styles.quickActionsContainer}>
           <Text style={styles.sectionTitle}>Actions rapides</Text>
           
@@ -243,15 +237,17 @@ const HomeScreen = ({ navigation }) => {
               <Text style={styles.actionSubtitle}>Données en temps réel</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.actionCard}>
+            <TouchableOpacity
+              style={styles.actionCard}
+              onPress={() => navigation.navigate('TaskList')}
+            >
               <Ionicons name="document-text" size={32} color="#f59e0b" />
-              <Text style={styles.actionTitle}>Rapports</Text>
-              <Text style={styles.actionSubtitle}>Consulter les analyses</Text>
+              <Text style={styles.actionTitle}>Mes Tâches</Text>
+              <Text style={styles.actionSubtitle}>Gérer mes tâches</Text>
             </TouchableOpacity>
           </View>
         </View>
 
-        {/* Assistant Chatbot Info */}
         <View style={styles.chatbotInfoContainer}>
           <View style={styles.chatbotInfo}>
             <View style={styles.chatbotIconContainer}>
@@ -267,11 +263,9 @@ const HomeScreen = ({ navigation }) => {
           </View>
         </View>
 
-        {/* Bottom Spacing pour le FAB du chatbot */}
         <View style={styles.bottomSpacing} />
       </ScrollView>
 
-      {/* Composant Chatbot */}
       <MobileChatbot />
     </SafeAreaView>
   );
@@ -305,11 +299,10 @@ const styles = StyleSheet.create({
     paddingBottom: 100, // Espace pour le FAB du chatbot
   },
 
-  // ✅ Header corrigé - plus de paddingTop automatique
   header: {
     backgroundColor: '#ffffff',
     padding: 20,
-    paddingTop: Platform.OS === 'ios' ? 10 : 20, // Padding réduit car SafeAreaView gère déjà
+    paddingTop: Platform.OS === 'ios' ? 10 : 20,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
@@ -354,7 +347,6 @@ const styles = StyleSheet.create({
     padding: 8,
   },
 
-  // Stats
   statsContainer: {
     flexDirection: 'row',
     paddingHorizontal: 20,
@@ -395,7 +387,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
 
-  // Quick Actions
   quickActionsContainer: {
     paddingHorizontal: 20,
     paddingVertical: 16,
@@ -437,7 +428,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
 
-  // Chatbot Info
   chatbotInfoContainer: {
     paddingHorizontal: 20,
     paddingVertical: 16,
@@ -475,7 +465,6 @@ const styles = StyleSheet.create({
     lineHeight: 16,
   },
 
-  // Bottom spacing
   bottomSpacing: {
     height: 20,
   },
