@@ -1,9 +1,8 @@
-// App.js - Version corrigée avec AuthProvider
 import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { StatusBar } from 'expo-status-bar';
-
+import { Provider as PaperProvider } from 'react-native-paper';
 import { AuthProvider } from './services/AuthContext';
 
 // Importez vos écrans existants
@@ -11,6 +10,8 @@ import EmployeeLoginScreen from './screens/EmployeeLoginScreen';
 import ForgotPasswordScreen from './screens/ForgotPasswordScreen';
 import ResetPasswordScreen from './screens/ResetPasswordScreen';
 import HomeScreen from './screens/HomeScreen';
+import TaskListScreen from './screens/TaskListScreen';
+import TaskDetailScreen from './screens/TaskDetailScreen';
 
 const Stack = createStackNavigator();
 
@@ -25,17 +26,17 @@ function AppNavigator() {
         }}
       >
         {/* Écran de connexion */}
-        <Stack.Screen 
-          name="Login" 
+        <Stack.Screen
+          name="Login"
           component={EmployeeLoginScreen}
           options={{
             title: 'Connexion Employé'
           }}
         />
-        
+       
         {/* Écran mot de passe oublié */}
-        <Stack.Screen 
-          name="ForgotPassword" 
+        <Stack.Screen
+          name="ForgotPassword"
           component={ForgotPasswordScreen}
           options={{
             title: 'Mot de passe oublié',
@@ -49,10 +50,10 @@ function AppNavigator() {
             },
           }}
         />
-        
+       
         {/* Écran de réinitialisation */}
-        <Stack.Screen 
-          name="ResetPassword" 
+        <Stack.Screen
+          name="ResetPassword"
           component={ResetPasswordScreen}
           options={{
             title: 'Nouveau mot de passe',
@@ -66,16 +67,35 @@ function AppNavigator() {
             },
           }}
         />
-        
+       
         {/* Écran principal avec chatbot */}
-        <Stack.Screen 
-          name="Home" 
+        <Stack.Screen
+          name="Home"
           component={HomeScreen}
           options={{
             title: 'Tableau de bord',
             headerShown: false,
-            // Empêcher le retour arrière vers login
             gestureEnabled: false,
+          }}
+        />
+       
+        {/* Écran de liste des tâches */}
+        <Stack.Screen
+          name="TaskList"
+          component={TaskListScreen}
+          options={{
+            title: 'Mes Tâches',
+            headerShown: false,
+          }}
+        />
+       
+        {/* Écran de détails de la tâche */}
+        <Stack.Screen
+          name="TaskDetail"
+          component={TaskDetailScreen}
+          options={{
+            title: 'Détails de la tâche',
+            headerShown: false,
           }}
         />
       </Stack.Navigator>
@@ -83,11 +103,12 @@ function AppNavigator() {
   );
 }
 
-// ✅ SOLUTION: Wrapper l'app avec AuthProvider
 export default function App() {
   return (
-    <AuthProvider>
-      <AppNavigator />
-    </AuthProvider>
+    <PaperProvider>
+      <AuthProvider>
+        <AppNavigator />
+      </AuthProvider>
+    </PaperProvider>
   );
 }

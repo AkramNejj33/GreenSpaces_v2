@@ -23,7 +23,7 @@ const ForgotPasswordScreen = ({ navigation }) => {
   const [resetToken, setResetToken] = useState(''); // ✅ AJOUT: Pour afficher le token en développement
 
   // ✅ IP mise à jour (même que dans votre EmployeeLoginScreen)
-  const API_BASE_URL = 'http://192.168.1.43:8000';
+  const API_BASE_URL = 'http://192.168.1.10:8000';
 
   const validateEmail = (email) => {
     const emailRegex = /\S+@\S+\.\S+/;

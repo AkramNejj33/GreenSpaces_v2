@@ -28,7 +28,7 @@ const ResetPasswordScreen = ({ navigation, route }) => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   // ✅ IP mise à jour (même que dans votre EmployeeLoginScreen)
-  const API_BASE_URL = 'http://192.168.1.43:8000';
+  const API_BASE_URL = 'http://192.168.1.10:8000';
 
   const handleInputChange = (field, value) => {
     setFormData(prev => ({
