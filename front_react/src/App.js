@@ -4,8 +4,6 @@ import Topbar from "./scenes/global/Topbar";
 import Sidebar from "./scenes/global/Sidebar";
 import Dashboard from "./scenes/dashboard";
 import Team from "./scenes/team";
-import Invoices from "./scenes/invoices";
-import Contacts from "./scenes/contacts";
 import Bar from "./scenes/bar";
 import Form from "./scenes/form";
 import Line from "./scenes/line";
@@ -69,18 +67,8 @@ function App() {
                     <Team />
                   </ProtectedRoute>
                 } />
+                                
                 
-                <Route path="/contacts" element={
-                  <ProtectedRoute>
-                    <Contacts />
-                  </ProtectedRoute>
-                } />
-                
-                <Route path="/invoices" element={
-                  <ProtectedRoute>
-                    <Invoices />
-                  </ProtectedRoute>
-                } />
                 <Route path="/tasks" element={
                     <ProtectedRoute>
                       <Tasks />
