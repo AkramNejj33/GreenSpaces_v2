@@ -37,20 +37,23 @@ class User(models.Model):
     username = models.CharField(max_length=100)
     email = models.EmailField(unique=True)
     password = models.CharField(max_length=128)
-    specialty = models.CharField(max_length=30, choices=SPECIALTY_CHOICES , default='autre') 
+    specialty = models.CharField(max_length=30, choices=SPECIALTY_CHOICES, default='autre')
     created_at = models.DateTimeField(auto_now_add=True)
     admin = models.ForeignKey(Admin, on_delete=models.CASCADE)
 
+    # Localisation
+    latitude = models.FloatField(null=True, blank=True)
+    longitude = models.FloatField(null=True, blank=True)
+
     reset_token = models.CharField(max_length=100, null=True, blank=True)
     reset_token_expires = models.DateTimeField(null=True, blank=True)
-    
+
     def set_password(self, password):
         from django.contrib.auth.hashers import make_password
         self.password = make_password(password)
 
     def __str__(self):
         return f"{self.username} - {self.get_specialty_display()}"
-
 
 
 

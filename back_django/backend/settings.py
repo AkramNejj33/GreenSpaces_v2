@@ -11,6 +11,10 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 import os
 
+GDAL_LIBRARY_PATH = r"C:\OSGeo4W\bin\gdal311.dll"  
+GEOS_LIBRARY_PATH = r"C:\OSGeo4W\bin\geos_c.dll"
+
+
 from pathlib import Path
 
 from dotenv import load_dotenv

@@ -25,14 +25,31 @@ class AdminSerializer(serializers.ModelSerializer):
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ['id', 'username', 'email', 'password', 'specialty', 'created_at']
+        fields = [
+            'id',
+            'username',
+            'email',
+            'password',
+            'specialty',
+            'latitude',      # Ajout latitude
+            'longitude',     # Ajout longitude
+            'created_at'
+        ]
         extra_kwargs = {
-            'password': {'write_only': True}
+            'password': {'write_only': True},
+            'latitude': {'required': False, 'allow_null': True},
+            'longitude': {'required': False, 'allow_null': True}
         }
 
     def create(self, validated_data):
         validated_data['password'] = make_password(validated_data['password'])
         return super().create(validated_data)
+
+    def update(self, instance, validated_data):
+        # On hache le mot de passe uniquement si fourni
+        if 'password' in validated_data:
+            validated_data['password'] = make_password(validated_data['password'])
+        return super().update(instance, validated_data)
     
 
 class TaskSerializer(serializers.ModelSerializer):
