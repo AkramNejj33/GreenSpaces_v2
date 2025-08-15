@@ -42,17 +42,17 @@ DEBUG = os.getenv('DEBUG', 'False').lower() == 'true'
 ALLOWED_HOSTS = ["*"]
 
 REST_FRAMEWORK = {
-    'DEFAULT_AUTHENTICATION_CLASSES': [
+    'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',
-    ],
+    ),
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticated',
-    ],
+    ]
 }
 
 SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=30),  # Token court pour la sécurité
-    'REFRESH_TOKEN_LIFETIME': timedelta(days=1),     # Token long pour l'UX
+    'ACCESS_TOKEN_LIFETIME': timedelta(days=1),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
     'ROTATE_REFRESH_TOKENS': True,                   # Renouvelle le refresh token
     'BLACKLIST_AFTER_ROTATION': True,               # Blacklist l'ancien token
     'UPDATE_LAST_LOGIN': True,                       # Met à jour last_login
@@ -276,4 +276,3 @@ LANGCHAIN_MEMORY_TOKEN_LIMIT = int(os.getenv('LANGCHAIN_MEMORY_TOKEN_LIMIT', 800
 
 # Timeout pour les appels API
 CHATBOT_API_TIMEOUT = int(os.getenv('CHATBOT_API_TIMEOUT', 30))
-

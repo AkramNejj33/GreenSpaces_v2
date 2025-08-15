@@ -19,6 +19,7 @@ from django_filters.rest_framework import DjangoFilterBackend
 from .models import Task
 from .serializers import TaskSerializer
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import AllowAny
 
 
 # ← AJOUT: Imports pour Simple JWT
@@ -424,8 +425,7 @@ class ChangePasswordView(APIView):
 class UserViewSet(viewsets.ModelViewSet):  # ou GenericViewSet si tu veux personnaliser
     queryset = User.objects.all()
     serializer_class = UserSerializer
-    permission_classes = [IsAuthenticated]
-
+    permission_classes = [AllowAny]
     def perform_create(self, serializer):
         serializer.save(admin=self.request.user)  
 
