@@ -64,12 +64,14 @@
     backdrop-filter: blur(10px);
     z-index: 1000;
     min-width: 200px;
+    max-width: 250px;
 }
 
 .ndvi-legend h4 {
     margin-bottom: 10px;
     color: #2d3748;
     font-size: 1.1em;
+    margin-top: 0;
 }
 
 .legend-item {
@@ -84,6 +86,7 @@
     border-radius: 4px;
     margin-right: 10px;
     border: 1px solid #e2e8f0;
+    flex-shrink: 0;
 }
 
 .legend-label {
@@ -92,7 +95,7 @@
 }
 
 .sidebar {
-    width: 320px;
+    width: 350px;
     background: linear-gradient(135deg, #2d3748, #4a5568);
     padding: 20px;
     overflow-y: auto;
@@ -168,9 +171,10 @@
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
+    font-size: 0.9em;
 }
 
-.btn:hover {
+.btn:hover:not(:disabled) {
     background: linear-gradient(135deg, #38a169, #2f855a) !important;
     transform: translateY(-2px);
     box-shadow: 0 8px 25px rgba(72, 187, 120, 0.3) !important;
@@ -181,35 +185,43 @@
     cursor: not-allowed;
     transform: none !important;
     box-shadow: none !important;
+    opacity: 0.6;
 }
 
 .stats {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 15px;
+    gap: 12px;
     margin-top: 20px;
 }
 
 .stat-card {
     background: rgba(255, 255, 255, 0.1);
-    padding: 15px;
+    padding: 12px;
     border-radius: 10px;
     text-align: center;
     backdrop-filter: blur(5px);
     border: 1px solid rgba(255, 255, 255, 0.1);
+    transition: transform 0.2s ease;
+}
+
+.stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
 }
 
 .stat-number {
-    font-size: 1.8em;
+    font-size: 1.6em;
     font-weight: bold;
     color: #68d391;
+    margin-bottom: 4px;
 }
 
 .stat-label {
-    font-size: 0.8em;
-    opacity: 0.8;
-    margin-top: 5px;
+    font-size: 0.75em;
+    opacity: 0.9;
     color: #e2e8f0;
+    line-height: 1.2;
 }
 
 .alert {
@@ -219,6 +231,8 @@
     background: rgba(245, 101, 101, 0.1);
     border: 1px solid rgba(245, 101, 101, 0.3);
     color: #c53030;
+    font-size: 0.9em;
+    line-height: 1.4;
 }
 
 .alert.success {
@@ -229,27 +243,26 @@
 
 /* Styles pour les popups */
 .popup-content {
-    max-width: 300px;
+    max-width: 280px;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
 }
 
 .popup-title {
     font-weight: bold;
     color: #2d3748;
-    margin-bottom: 10px;
+    margin-bottom: 12px;
     display: flex;
     align-items: center;
-}
-
-.popup-title i {
-    margin-right: 8px;
-    color: #48bb78;
+    font-size: 1.1em;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #e2e8f0;
 }
 
 .popup-info {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 10px;
-    margin-top: 10px;
+    gap: 8px;
+    margin-top: 12px;
 }
 
 .popup-stat {
@@ -257,16 +270,20 @@
     padding: 8px;
     border-radius: 6px;
     text-align: center;
+    border: 1px solid rgba(72, 187, 120, 0.2);
 }
 
 .popup-stat-value {
     font-weight: bold;
     color: #2f855a;
+    font-size: 0.9em;
+    margin-bottom: 2px;
 }
 
 .popup-stat-label {
-    font-size: 0.8em;
+    font-size: 0.75em;
     color: #4a5568;
+    line-height: 1.2;
 }
 
 .loading {
@@ -277,9 +294,10 @@
     background: rgba(255, 255, 255, 0.95);
     padding: 30px;
     border-radius: 15px;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
     text-align: center;
     z-index: 1001;
+    backdrop-filter: blur(5px);
 }
 
 .spinner {
@@ -311,20 +329,21 @@
     .sidebar {
         width: 100%;
         height: auto;
-        max-height: 40vh;
+        max-height: 45vh;
+        overflow-y: auto;
     }
     
     .stats {
-        grid-template-columns: repeat(4, 1fr);
-        gap: 10px;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 8px;
     }
     
     .stat-card {
-        padding: 10px;
+        padding: 8px;
     }
     
     .stat-number {
-        font-size: 1.4em;
+        font-size: 1.3em;
     }
     
     .stat-label {
@@ -334,7 +353,29 @@
     .ndvi-legend {
         right: 5px;
         top: 5px;
-        min-width: 150px;
-        padding: 10px;
+        min-width: 180px;
+        padding: 12px;
+    }
+    
+    .ndvi-legend h4 {
+        font-size: 1em;
+    }
+    
+    .legend-label {
+        font-size: 0.8em;
+    }
+}
+
+@media (max-width: 480px) {
+    .stats {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .header h2 {
+        font-size: 1.4em;
+    }
+    
+    .header {
+        padding: 15px 20px;
     }
 }
