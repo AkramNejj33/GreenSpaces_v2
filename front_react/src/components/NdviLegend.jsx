@@ -40,83 +40,22 @@ const NDVI_RANGES = [
 ];
 
 const AGENT_SPECIALTIES = [
-  { 
-    key: 'jardinier', 
-    label: 'Jardinier', 
-    color: '#48bb78',
-    icon: '🌱',
-    description: 'Entretien général des espaces verts'
-  },
-  { 
-    key: 'paysagiste', 
-    label: 'Paysagiste', 
-    color: '#68d391',
-    icon: '🏞️',
-    description: 'Conception et aménagement paysager'
-  },
-  { 
-    key: 'horticulteur', 
-    label: 'Horticulteur', 
-    color: '#9ae6b4',
-    icon: '🌺',
-    description: 'Culture et soin des plantes spécialisées'
-  },
-  { 
-    key: 'technicien_iot', 
-    label: 'Technicien IoT', 
-    color: '#4299e1',
-    icon: '📡',
-    description: 'Maintenance des capteurs connectés'
-  },
-  { 
-    key: 'electronicien', 
-    label: 'Électronicien', 
-    color: '#63b3ed',
-    icon: '⚡',
-    description: 'Systèmes électriques et électroniques'
-  },
-  { 
-    key: 'installateur_capteurs', 
-    label: 'Installateur capteurs', 
-    color: '#7f9cf5',
-    icon: '🔧',
-    description: 'Installation et configuration des capteurs'
-  },
-  { 
-    key: 'maintenance', 
-    label: 'Maintenance', 
-    color: '#667eea',
-    icon: '🛠️',
-    description: 'Maintenance générale des équipements'
-  },
-  { 
-    key: 'irrigation', 
-    label: 'Irrigation', 
-    color: '#76e4f7',
-    icon: '💧',
-    description: 'Systèmes d\'arrosage et gestion de l\'eau'
-  },
-  { 
-    key: 'gestion_energie', 
-    label: 'Gestion énergie', 
-    color: '#4fd1c5',
-    icon: '🔋',
-    description: 'Optimisation énergétique des installations'
-  },
-  { 
-    key: 'autre', 
-    label: 'Autre', 
-    color: '#cbd5e0',
-    icon: '👤',
-    description: 'Autres spécialités non listées'
-  }
+  { key: 'jardinier', label: 'Jardinier', color: '#48bb78', icon: '🌱', description: 'Entretien général des espaces verts' },
+  { key: 'paysagiste', label: 'Paysagiste', color: '#68d391', icon: '🏞️', description: 'Conception et aménagement paysager' },
+  { key: 'horticulteur', label: 'Horticulteur', color: '#9ae6b4', icon: '🌺', description: 'Culture et soin des plantes spécialisées' },
+  { key: 'technicien_iot', label: 'Technicien IoT', color: '#4299e1', icon: '📡', description: 'Maintenance des capteurs connectés' },
+  { key: 'electronicien', label: 'Électronicien', color: '#63b3ed', icon: '⚡', description: 'Systèmes électriques et électroniques' },
+  { key: 'installateur_capteurs', label: 'Installateur capteurs', color: '#7f9cf5', icon: '🔧', description: 'Installation et configuration des capteurs' },
+  { key: 'maintenance', label: 'Maintenance', color: '#667eea', icon: '🛠️', description: 'Maintenance générale des équipements' },
+  { key: 'irrigation', label: 'Irrigation', color: '#76e4f7', icon: '💧', description: 'Systèmes d\'arrosage et gestion de l\'eau' },
+  { key: 'gestion_energie', label: 'Gestion énergie', color: '#4fd1c5', icon: '🔋', description: 'Optimisation énergétique des installations' },
+  { key: 'autre', label: 'Autre', color: '#cbd5e0', icon: '👤', description: 'Autres spécialités non listées' }
 ];
 
-// ===== COMPOSANTS OPTIMISÉS =====
+// Pour réutilisation éventuelle côté parent/carte
+const AGENT_KEYS_DEFAULT = AGENT_SPECIALTIES.map(s => s.key);
 
-/**
- * Élément de légende avec tooltip et accessibilité améliorée
- */
+// ===== COMPOSANTS =====
 const LegendItem = memo(({ 
   color, 
   label, 
@@ -151,14 +90,10 @@ const LegendItem = memo(({
       border: isActive ? '1px solid rgba(66, 153, 225, 0.3)' : '1px solid transparent'
     }}
     onMouseEnter={(e) => {
-      if (onClick) {
-        e.currentTarget.style.backgroundColor = 'rgba(0, 0, 0, 0.05)';
-      }
+      if (onClick) e.currentTarget.style.backgroundColor = 'rgba(0, 0, 0, 0.05)';
     }}
     onMouseLeave={(e) => {
-      if (onClick && !isActive) {
-        e.currentTarget.style.backgroundColor = 'transparent';
-      }
+      if (onClick && !isActive) e.currentTarget.style.backgroundColor = 'transparent';
     }}
   >
     <div 
@@ -175,11 +110,7 @@ const LegendItem = memo(({
       }} 
     />
     {icon && (
-      <span style={{ 
-        marginRight: '8px', 
-        fontSize: '16px',
-        filter: isActive ? 'brightness(1.2)' : 'none'
-      }}>
+      <span style={{ marginRight: '8px', fontSize: '16px', filter: isActive ? 'brightness(1.2)' : 'none' }}>
         {icon}
       </span>
     )}
@@ -197,13 +128,7 @@ const LegendItem = memo(({
         {label}
       </span>
       {range && (
-        <span style={{ 
-          color: '#718096', 
-          fontSize: '0.75rem',
-          display: 'block',
-          marginTop: '2px',
-          fontFamily: 'monospace'
-        }}>
+        <span style={{ color: '#718096', fontSize: '0.75rem', display: 'block', marginTop: '2px', fontFamily: 'monospace' }}>
           NDVI: {range}
         </span>
       )}
@@ -211,9 +136,6 @@ const LegendItem = memo(({
   </div>
 ));
 
-/**
- * Section de légende avec titre et compteur
- */
 const LegendSection = memo(({ 
   title, 
   icon, 
@@ -252,59 +174,35 @@ const LegendSection = memo(({
         transition: 'background-color 0.2s ease'
       }}
       onMouseEnter={(e) => {
-        if (isCollapsible) {
-          e.currentTarget.style.backgroundColor = 'rgba(0, 0, 0, 0.05)';
-        }
+        if (isCollapsible) e.currentTarget.style.backgroundColor = 'rgba(0, 0, 0, 0.05)';
       }}
       onMouseLeave={(e) => {
-        if (isCollapsible) {
-          e.currentTarget.style.backgroundColor = 'transparent';
-        }
+        if (isCollapsible) e.currentTarget.style.backgroundColor = 'transparent';
       }}
     >
       <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
         {icon && <span style={{ fontSize: '18px' }}>{icon}</span>}
         <span>{title}</span>
         {count !== null && (
-          <span style={{ 
-            fontSize: '0.8rem', 
-            color: '#718096',
-            backgroundColor: 'rgba(113, 128, 150, 0.1)',
-            padding: '2px 6px',
-            borderRadius: '10px',
-            fontWeight: '500'
-          }}>
+          <span style={{ fontSize: '0.8rem', color: '#718096', backgroundColor: 'rgba(113, 128, 150, 0.1)', padding: '2px 6px', borderRadius: '10px', fontWeight: '500' }}>
             {count}
           </span>
         )}
       </div>
       {isCollapsible && (
-        <span style={{ 
-          fontSize: '12px', 
-          color: '#a0aec0',
-          transform: isCollapsed ? 'rotate(-90deg)' : 'rotate(0deg)',
-          transition: 'transform 0.2s ease'
-        }}>
+        <span style={{ fontSize: '12px', color: '#a0aec0', transform: isCollapsed ? 'rotate(-90deg)' : 'rotate(0deg)', transition: 'transform 0.2s ease' }}>
           ▼
         </span>
       )}
     </div>
     {!isCollapsed && (
-      <div 
-        className="legend-section-content"
-        style={{
-          animation: isCollapsible ? 'fadeIn 0.3s ease' : 'none'
-        }}
-      >
+      <div className="legend-section-content" style={{ animation: isCollapsible ? 'fadeIn 0.3s ease' : 'none' }}>
         {children}
       </div>
     )}
   </div>
 ));
 
-/**
- * Indicateur de qualité des données
- */
 const DataQualityIndicator = memo(({ 
   satelliteData, 
   ndviMode = 'realistic',
@@ -327,15 +225,7 @@ const DataQualityIndicator = memo(({
       borderRadius: '6px',
       border: '1px solid rgba(66, 153, 225, 0.15)'
     }}>
-      <div style={{ 
-        fontSize: '0.85rem', 
-        fontWeight: '600', 
-        color: '#2d3748',
-        marginBottom: '8px',
-        display: 'flex',
-        alignItems: 'center',
-        gap: '6px'
-      }}>
+      <div style={{ fontSize: '0.85rem', fontWeight: '600', color: '#2d3748', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
         <span>🛰️</span>
         <span>Qualité des données</span>
       </div>
@@ -348,11 +238,7 @@ const DataQualityIndicator = memo(({
         </div>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
           <span>Couverture nuageuse:</span>
-          <span style={{ 
-            fontFamily: 'monospace', 
-            fontWeight: '500',
-            color: satelliteData.cloudCover > 30 ? '#f56565' : '#48bb78'
-          }}>
+          <span style={{ fontFamily: 'monospace', fontWeight: '500', color: satelliteData.cloudCover > 30 ? '#f56565' : '#48bb78' }}>
             {satelliteData.cloudCover?.toFixed(1)}%
           </span>
         </div>
@@ -371,9 +257,7 @@ const DataQualityIndicator = memo(({
   );
 });
 
-/**
- * Composant principal de la légende NDVI optimisé
- */
+// ===== COMPOSANT PRINCIPAL LÉGENDE =====
 const NdviLegend = memo(({ 
   showNdvi = true, 
   showAgents = true,
@@ -391,10 +275,8 @@ const NdviLegend = memo(({
   const [ndviSectionCollapsed, setNdviSectionCollapsed] = React.useState(false);
   const [agentsSectionCollapsed, setAgentsSectionCollapsed] = React.useState(false);
 
-  // Calcul des statistiques pour chaque catégorie
   const ndviRangesWithStats = React.useMemo(() => {
     if (!statistics?.ndviDistribution) return NDVI_RANGES;
-    
     return NDVI_RANGES.map(range => ({
       ...range,
       count: statistics.ndviDistribution[
@@ -408,7 +290,6 @@ const NdviLegend = memo(({
 
   const agentSpecialtiesWithStats = React.useMemo(() => {
     if (!statistics?.specialtiesCount) return AGENT_SPECIALTIES;
-    
     return AGENT_SPECIALTIES.map(specialty => ({
       ...specialty,
       count: statistics.specialtiesCount[specialty.key] || 0
@@ -434,36 +315,18 @@ const NdviLegend = memo(({
           ...style
         }}
       >
-        {/* En-tête de la légende */}
-        <div style={{
-          marginBottom: '16px',
-          paddingBottom: '12px',
-          borderBottom: '2px solid #e2e8f0'
-        }}>
-          <h3 style={{
-            margin: 0,
-            fontSize: '1.1rem',
-            fontWeight: '700',
-            color: '#2d3748',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px'
-          }}>
+        <div style={{ marginBottom: '16px', paddingBottom: '12px', borderBottom: '2px solid #e2e8f0' }}>
+          <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: '700', color: '#2d3748', display: 'flex', alignItems: 'center', gap: '8px' }}>
             <span>🗺️</span>
             <span>Légende Interactive</span>
           </h3>
           {ndviCalculationMode === 'realistic' && (
-            <div style={{
-              fontSize: '0.75rem',
-              color: '#718096',
-              marginTop: '4px'
-            }}>
+            <div style={{ fontSize: '0.75rem', color: '#718096', marginTop: '4px' }}>
               Mode satellite activé
             </div>
           )}
         </div>
         
-        {/* Section NDVI */}
         {showNdvi && (
           <LegendSection 
             title="Indice NDVI" 
@@ -491,15 +354,10 @@ const NdviLegend = memo(({
           </LegendSection>
         )}
         
-        {/* Séparateur */}
         {showNdvi && showAgents && (
-          <div style={{ 
-            borderTop: '1px solid #e2e8f0', 
-            margin: '20px 0' 
-          }} />
+          <div style={{ borderTop: '1px solid #e2e8f0', margin: '20px 0' }} />
         )}
         
-        {/* Section Agents */}
         {showAgents && (
           <LegendSection 
             title="Types d'Agents" 
@@ -526,7 +384,6 @@ const NdviLegend = memo(({
           </LegendSection>
         )}
 
-        {/* Indicateur de qualité des données */}
         <DataQualityIndicator
           satelliteData={satelliteData}
           ndviMode={ndviCalculationMode}
@@ -535,67 +392,19 @@ const NdviLegend = memo(({
         />
       </div>
 
-      {/* Styles CSS intégrés */}
       <style jsx>{`
-        .ndvi-legend::-webkit-scrollbar {
-          width: 6px;
-        }
-        
-        .ndvi-legend::-webkit-scrollbar-track {
-          background: #f7fafc;
-          border-radius: 3px;
-        }
-        
-        .ndvi-legend::-webkit-scrollbar-thumb {
-          background: rgba(0, 0, 0, 0.2);
-          border-radius: 3px;
-        }
-        
-        .ndvi-legend::-webkit-scrollbar-thumb:hover {
-          background: rgba(0, 0, 0, 0.3);
-        }
-        
-        .legend-item.clickable:focus {
-          outline: 2px solid #4299e1;
-          outline-offset: 1px;
-        }
-        
-        .legend-section-header.collapsible:focus {
-          outline: 2px solid #4299e1;
-          outline-offset: 1px;
-        }
-        
-        @keyframes fadeIn {
-          from {
-            opacity: 0;
-            transform: translateY(-10px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-        
+        .ndvi-legend::-webkit-scrollbar { width: 6px; }
+        .ndvi-legend::-webkit-scrollbar-track { background: #f7fafc; border-radius: 3px; }
+        .ndvi-legend::-webkit-scrollbar-thumb { background: rgba(0, 0, 0, 0.2); border-radius: 3px; }
+        .ndvi-legend::-webkit-scrollbar-thumb:hover { background: rgba(0, 0, 0, 0.3); }
+        .legend-item.clickable:focus { outline: 2px solid #4299e1; outline-offset: 1px; }
+        .legend-section-header.collapsible:focus { outline: 2px solid #4299e1; outline-offset: 1px; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
         @media (max-width: 768px) {
-          .ndvi-legend {
-            min-width: 180px !important;
-            max-width: 220px !important;
-            padding: 12px !important;
-          }
-          
-          .legend-item {
-            margin-bottom: 6px !important;
-          }
-          
-          .legend-color {
-            width: 14px !important;
-            height: 14px !important;
-            margin-right: 8px !important;
-          }
-          
-          .legend-label {
-            font-size: 0.8rem !important;
-          }
+          .ndvi-legend { min-width: 180px !important; max-width: 220px !important; padding: 12px !important; }
+          .legend-item { margin-bottom: 6px !important; }
+          .legend-color { width: 14px !important; height: 14px !important; margin-right: 8px !important; }
+          .legend-label { font-size: 0.8rem !important; }
         }
       `}</style>
     </>
@@ -604,6 +413,6 @@ const NdviLegend = memo(({
 
 NdviLegend.displayName = 'NdviLegend';
 
-// Export des constantes pour réutilisation dans d'autres composants
-export { NDVI_RANGES, AGENT_SPECIALTIES };
+// Export des constantes pour réutilisation
+export { NDVI_RANGES, AGENT_SPECIALTIES, AGENT_KEYS_DEFAULT };
 export default NdviLegend;
