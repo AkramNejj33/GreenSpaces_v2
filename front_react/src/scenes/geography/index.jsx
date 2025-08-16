@@ -34,18 +34,14 @@ const API_BASE_URL = "http://127.0.0.1:8000/api";
 
 // Simulateur de données satellite pour NDVI réel
 const SatelliteDataSimulator = {
-  /**
-   * Simule l'acquisition de données satellite Landsat/Sentinel
-   */
   async fetchSatelliteData(bounds) {
-    // Simulation d'un appel API vers un service satellite réel
     return new Promise((resolve) => {
       setTimeout(() => {
         const data = {
           acquisitionDate: new Date().toISOString(),
           satellite: 'Landsat-8',
-          cloudCover: Math.random() * 20, // % de couverture nuageuse
-          spatialResolution: 30, // mètres par pixel
+          cloudCover: Math.random() * 20,
+          spatialResolution: 30,
           spectralBands: {
             red: { wavelength: '0.64-0.67 μm', available: true },
             nir: { wavelength: '0.85-0.88 μm', available: true },
@@ -57,13 +53,9 @@ const SatelliteDataSimulator = {
     });
   },
 
-  /**
-   * Calcule NDVI basé sur des données spectrales réalistes
-   */
   calculateRealNDVI(feature, satelliteData) {
     const props = feature.properties || {};
     
-    // Facteurs environnementaux réels
     const environmentalFactors = {
       elevation: this.getElevationFactor(feature),
       slope: this.getSlopeFactor(feature),
@@ -73,11 +65,9 @@ const SatelliteDataSimulator = {
       urbanHeatIsland: this.getUrbanHeatFactor(feature)
     };
     
-    // Paramètres spectraux selon le type de végétation
     const vegetationType = this.identifyVegetationType(props);
     const baseSpectral = this.getSpectralSignature(vegetationType);
     
-    // Application des facteurs environnementaux
     const adjustedNir = baseSpectral.nir * 
       environmentalFactors.elevation * 
       environmentalFactors.waterAccess * 
@@ -88,7 +78,6 @@ const SatelliteDataSimulator = {
       environmentalFactors.slope *
       environmentalFactors.urbanHeatIsland;
     
-    // Calcul NDVI avec correction atmosphérique simulée
     const rawNdvi = NDVICalculator.calculateNDVI(adjustedNir, adjustedRed);
     const atmosphericCorrectedNdvi = this.applyAtmosphericCorrection(
       rawNdvi, 
@@ -109,7 +98,6 @@ const SatelliteDataSimulator = {
   },
 
   identifyVegetationType(props) {
-    // Identification basée sur les tags OSM
     if (props.natural === 'wood' || props.landuse === 'forest') return 'forest';
     if (props.leisure === 'park' || props.leisure === 'garden') return 'urban_park';
     if (props.landuse === 'grass' || props.natural === 'grassland') return 'grassland';
@@ -130,33 +118,29 @@ const SatelliteDataSimulator = {
     
     const signature = signatures[vegetationType] || signatures.mixed_vegetation;
     
-    // Ajouter variation naturelle
     return {
       nir: signature.nir + (Math.random() - 0.5) * signature.variance,
       red: signature.red + (Math.random() - 0.5) * signature.variance
     };
   },
 
-  getElevationFactor: () => 0.95 + Math.random() * 0.1, // Simulation altitude
-  getSlopeFactor: () => 0.92 + Math.random() * 0.16,    // Simulation pente
-  getAspectFactor: () => 0.88 + Math.random() * 0.24,   // Simulation exposition
-  getSoilTypeFactor: () => 0.85 + Math.random() * 0.3,  // Simulation type de sol
-  getWaterAccessFactor: () => 0.7 + Math.random() * 0.6, // Simulation accès eau
-  getUrbanHeatFactor: () => 1.1 + Math.random() * 0.3,  // Simulation îlot chaleur urbain
+  getElevationFactor: () => 0.95 + Math.random() * 0.1,
+  getSlopeFactor: () => 0.92 + Math.random() * 0.16,
+  getAspectFactor: () => 0.88 + Math.random() * 0.24,
+  getSoilTypeFactor: () => 0.85 + Math.random() * 0.3,
+  getWaterAccessFactor: () => 0.7 + Math.random() * 0.6,
+  getUrbanHeatFactor: () => 1.1 + Math.random() * 0.3,
 
   applyAtmosphericCorrection(ndvi, cloudCover) {
-    // Correction atmosphérique simplifiée
     const correctionFactor = 1 - (cloudCover / 100) * 0.1;
     return Math.max(-1, Math.min(1, ndvi * correctionFactor));
   },
 
   calculateConfidence(factors, cloudCover) {
-    // Calcul de confiance basé sur les conditions d'acquisition
     let confidence = 0.9;
     if (cloudCover > 15) confidence -= 0.2;
     if (cloudCover > 30) confidence -= 0.3;
     
-    // Facteurs de qualité des données
     Object.values(factors).forEach(factor => {
       if (factor < 0.5 || factor > 1.5) confidence -= 0.1;
     });
@@ -210,7 +194,7 @@ const LoadingSpinner = React.memo(({ message = "Chargement des données..." }) =
 
 // ===== COMPOSANT PRINCIPAL =====
 const Geography = () => {
-  // ===== ÉTAT =====
+  // ===== ÉTAT CONSOLIDÉ POUR ÉVITER LES CONFLITS =====
   const [parksData, setParksData] = useState([]);
   const [usersData, setUsersData] = useState([]);
   const [stats, setStats] = useState({
@@ -231,11 +215,17 @@ const Geography = () => {
     loading: false,
     showUsers: true,
     showParks: true,
-    ndviCalculationMode: 'realistic', // 'realistic' ou 'random'
+    ndviCalculationMode: 'realistic',
     satelliteData: null
   });
 
   const [map, setMap] = useState(null);
+
+  // *** CORRECTION 10: États pour les filtres avec gestion stable ***
+  const [filters, setFilters] = useState({
+    activeAgentTypes: [],
+    activeNdviRange: null
+  });
 
   // ===== PARSEUR WKT OPTIMISÉ =====
   const parseWKTToGeoJSON = useCallback((wktString) => {
@@ -295,61 +285,68 @@ const Geography = () => {
     }, 5000);
   }, []);
 
-  // ===== CALCUL DES STATISTIQUES OPTIMISÉ =====
+  // *** CORRECTION 11: Fonction de calcul des stats avec gestion d'erreurs améliorée ***
   const updateStats = useCallback((parks, users) => {
-    const totalParks = parks.length;
-    const totalUsers = users.length;
-    
-    // Calcul NDVI avec gestion des erreurs
-    let avgNDVI = "--";
-    let healthyParks = 0;
-    let alertParks = 0;
-    let criticalParks = 0;
-    let ndviSum = 0;
-    let validNdviCount = 0;
-    
-    parks.forEach(park => {
-      const ndvi = park.properties?.ndvi;
-      if (typeof ndvi === 'number' && !isNaN(ndvi)) {
-        ndviSum += ndvi;
-        validNdviCount++;
-        
-        if (ndvi >= 0.6) healthyParks++;
-        else if (ndvi < 0.3) criticalParks++;
-        else alertParks++;
+    try {
+      const totalParks = parks.length;
+      const totalUsers = users.length;
+      
+      // Calcul NDVI avec gestion robuste des erreurs
+      let avgNDVI = "--";
+      let healthyParks = 0;
+      let alertParks = 0;
+      let criticalParks = 0;
+      let ndviSum = 0;
+      let validNdviCount = 0;
+      
+      parks.forEach(park => {
+        const ndvi = park.properties?.ndvi;
+        if (typeof ndvi === 'number' && !isNaN(ndvi) && ndvi >= 0 && ndvi <= 1) {
+          ndviSum += ndvi;
+          validNdviCount++;
+          
+          if (ndvi >= 0.6) healthyParks++;
+          else if (ndvi < 0.3) criticalParks++;
+          else alertParks++;
+        }
+      });
+      
+      if (validNdviCount > 0) {
+        avgNDVI = (ndviSum / validNdviCount).toFixed(3);
       }
-    });
-    
-    if (validNdviCount > 0) {
-      avgNDVI = (ndviSum / validNdviCount).toFixed(3);
+
+      // Comptage des spécialités avec normalisation
+      const specialtiesCount = users.reduce((acc, user) => {
+        let specialty = user.properties?.specialty || user.properties?.specialtyLabel || 'autre';
+        // Normaliser la spécialité
+        if (typeof specialty === 'string') {
+          specialty = specialty.toLowerCase().trim();
+        }
+        acc[specialty] = (acc[specialty] || 0) + 1;
+        return acc;
+      }, {});
+
+      const ndviTrend = validNdviCount > 0 ? 
+        Math.round((Math.random() - 0.5) * 10) : 0;
+
+      setStats(prev => ({
+        ...prev,
+        totalParks,
+        totalUsers,
+        avgNDVI,
+        healthyParks,
+        alertParks,
+        criticalParks,
+        specialtiesCount,
+        ndviTrend,
+        lastSatellitePass: ui.satelliteData?.acquisitionDate || null
+      }));
+    } catch (error) {
+      console.error('Erreur calcul stats:', error);
     }
-
-    // Comptage des spécialités optimisé
-    const specialtiesCount = users.reduce((acc, user) => {
-      const specialty = user.properties?.specialty || 'autre';
-      acc[specialty] = (acc[specialty] || 0) + 1;
-      return acc;
-    }, {});
-
-    // Calcul de tendance NDVI (simulation)
-    const ndviTrend = validNdviCount > 0 ? 
-      Math.round((Math.random() - 0.5) * 10) : 0;
-
-    setStats(prev => ({
-      ...prev,
-      totalParks,
-      totalUsers,
-      avgNDVI,
-      healthyParks,
-      alertParks,
-      criticalParks,
-      specialtiesCount,
-      ndviTrend,
-      lastSatellitePass: ui.satelliteData?.acquisitionDate || null
-    }));
   }, [ui.satelliteData]);
 
-  // ===== API CALLS OPTIMISÉES =====
+  // ===== API CALLS AMÉLIORÉES =====
   const fetchGreenSpaces = useCallback(async () => {
     try {
       const response = await fetch(`${API_BASE_URL}/green_spaces/`, {
@@ -357,7 +354,9 @@ const Geography = () => {
         headers: {
           'Accept': 'application/json',
           'Content-Type': 'application/json'
-        }
+        },
+        // Ajouter un timeout
+        signal: AbortSignal.timeout(15000)
       });
       
       if (!response.ok) {
@@ -379,13 +378,14 @@ const Geography = () => {
           let ndviData;
           if (ui.ndviCalculationMode === 'realistic') {
             // Simulation acquisition données satellite
-            if (!ui.satelliteData) {
-              const satelliteData = await SatelliteDataSimulator.fetchSatelliteData();
+            let satelliteData = ui.satelliteData;
+            if (!satelliteData) {
+              satelliteData = await SatelliteDataSimulator.fetchSatelliteData();
               setUi(prev => ({ ...prev, satelliteData }));
             }
             
             const feature = { properties: space, geometry };
-            ndviData = SatelliteDataSimulator.calculateRealNDVI(feature, ui.satelliteData);
+            ndviData = SatelliteDataSimulator.calculateRealNDVI(feature, satelliteData);
           } else {
             // Mode aléatoire simple
             ndviData = {
@@ -400,7 +400,7 @@ const Geography = () => {
               full_id: space.full_id,
               osm_id: space.osm_id,
               name: space.name || `Espace vert #${index + 1}`,
-              ndvi: ndviData.ndvi,
+              ndvi: Math.max(0, Math.min(1, ndviData.ndvi)), // Assurer que NDVI est dans [0,1]
               ndviMetadata: ndviData.metadata,
               healthStatus: getHealthStatus(ndviData.ndvi),
               lastMaintenance: new Date(
@@ -436,7 +436,8 @@ const Geography = () => {
         headers: {
           'Accept': 'application/json',
           'Content-Type': 'application/json'
-        }
+        },
+        signal: AbortSignal.timeout(10000)
       });
       
       if (!response.ok) {
@@ -449,10 +450,19 @@ const Geography = () => {
         throw new Error('Format de données utilisateurs invalide');
       }
 
+      console.log('[Geography] Données utilisateurs reçues:', data.length);
+
       const features = data.map((user) => {
         // Validation des coordonnées
         if (typeof user.latitude !== 'number' || typeof user.longitude !== 'number') {
           console.warn('Coordonnées utilisateur invalides:', user);
+          return null;
+        }
+
+        // Validation des limites géographiques (approximativement pour le Maroc)
+        if (user.latitude < 20 || user.latitude > 40 || 
+            user.longitude < -20 || user.longitude > 0) {
+          console.warn('Coordonnées utilisateur hors limites:', user);
           return null;
         }
 
@@ -469,11 +479,12 @@ const Geography = () => {
           },
           geometry: {
             type: "Point",
-            coordinates: [user.longitude, user.latitude],
+            coordinates: [user.longitude, user.latitude], // GeoJSON format: [lng, lat]
           },
         };
       }).filter(Boolean);
 
+      console.log('[Geography] Features utilisateurs créées:', features.length);
       setUsersData(features);
       return features;
 
@@ -484,8 +495,10 @@ const Geography = () => {
     }
   }, [showMessage]);
 
-  // ===== ACTIONS PRINCIPALES =====
+  // *** CORRECTION 12: Action de chargement avec gestion d'état améliorée ***
   const loadAllData = useCallback(async () => {
+    if (ui.loading) return; // Éviter les doubles chargements
+    
     setUi(prev => ({ ...prev, loading: true }));
     showMessage("Chargement des données depuis l'API...", "info");
 
@@ -494,6 +507,8 @@ const Geography = () => {
         fetchGreenSpaces(),
         fetchUsers()
       ]);
+
+      console.log('[Geography] Données chargées - Parcs:', parks.length, 'Utilisateurs:', users.length);
 
       updateStats(parks, users);
       setUi(prev => ({ 
@@ -504,50 +519,16 @@ const Geography = () => {
       
       showMessage(`Chargées: ${parks.length} espaces verts, ${users.length} agents`, "success");
 
-      // Ajustement automatique de la carte
-      if (map && (parks.length > 0 || users.length > 0)) {
-        setTimeout(() => {
-          try {
-            const allFeatures = [...parks, ...users];
-            const bounds = [];
-
-            allFeatures.forEach((feature) => {
-              const { geometry } = feature;
-              if (geometry.type === "Point") {
-                bounds.push([geometry.coordinates[1], geometry.coordinates[0]]);
-              } else if (geometry.type === "Polygon") {
-                geometry.coordinates[0].forEach((coord) => {
-                  bounds.push([coord[1], coord[0]]);
-                });
-              } else if (geometry.type === "MultiPolygon") {
-                geometry.coordinates.forEach((polygon) => {
-                  polygon[0].forEach((coord) => {
-                    bounds.push([coord[1], coord[0]]);
-                  });
-                });
-              }
-            });
-
-            if (bounds.length > 0 && window.L) {
-              const leafletBounds = window.L.latLngBounds(bounds);
-              map.fitBounds(leafletBounds, { padding: [20, 20] });
-            }
-          } catch (error) {
-            console.warn('Erreur ajustement carte:', error);
-          }
-        }, 500);
-      }
-
     } catch (error) {
       console.error("Erreur chargement général:", error);
       showMessage("Erreur lors du chargement des données", "error");
       setUi(prev => ({ ...prev, loading: false }));
     }
-  }, [fetchGreenSpaces, fetchUsers, updateStats, showMessage, map]);
+  }, [fetchGreenSpaces, fetchUsers, updateStats, showMessage, ui.loading]);
 
   const recalculateNDVI = useCallback(async () => {
-    if (parksData.length === 0) {
-      showMessage("Aucun espace vert disponible.", "error");
+    if (parksData.length === 0 || ui.loading) {
+      showMessage("Aucun espace vert disponible ou chargement en cours.", "error");
       return;
     }
 
@@ -557,7 +538,6 @@ const Geography = () => {
     showMessage(`Calcul NDVI ${calculationMode} en cours...`, "info");
 
     try {
-      // Simulation temps de traitement satellite
       await new Promise(resolve => setTimeout(resolve, 2000));
 
       let satelliteData = ui.satelliteData;
@@ -582,7 +562,7 @@ const Geography = () => {
           ...feature,
           properties: {
             ...feature.properties,
-            ndvi: ndviData.ndvi,
+            ndvi: Math.max(0, Math.min(1, ndviData.ndvi)), // Assurer [0,1]
             ndviMetadata: ndviData.metadata,
             healthStatus: getHealthStatus(ndviData.ndvi)
           }
@@ -608,7 +588,7 @@ const Geography = () => {
       showMessage("Erreur lors du calcul NDVI", "error");
       setUi(prev => ({ ...prev, loading: false }));
     }
-  }, [parksData, usersData, updateStats, getHealthStatus, showMessage, ui.ndviCalculationMode, ui.satelliteData]);
+  }, [parksData, usersData, updateStats, getHealthStatus, showMessage, ui.ndviCalculationMode, ui.satelliteData, ui.loading]);
 
   const generateAdvancedReport = useCallback(() => {
     if (parksData.length === 0 && usersData.length === 0) {
@@ -685,7 +665,6 @@ const Geography = () => {
         }
       };
 
-      // Export du rapport
       const blob = new Blob([JSON.stringify(report, null, 2)], {
         type: "application/json",
       });
@@ -706,19 +685,35 @@ const Geography = () => {
     }
   }, [parksData, usersData, stats, ui.ndviCalculationMode, showMessage]);
 
-  // ===== MEMOIZED VALUES =====
-  const filteredParksData = useMemo(() => {
-    return ui.showParks ? parksData : [];
-  }, [ui.showParks, parksData]);
+  // *** CORRECTION 13: Gestionnaires d'événements pour les filtres ***
+  const handleLayerToggle = useCallback((layer) => {
+    setUi(prev => ({
+      ...prev,
+      [layer]: !prev[layer]
+    }));
+  }, []);
 
-  const filteredUsersData = useMemo(() => {
-    return ui.showUsers ? usersData : [];
-  }, [ui.showUsers, usersData]);
+  const handleCalculationModeChange = useCallback((mode) => {
+    setUi(prev => ({
+      ...prev,
+      ndviCalculationMode: mode
+    }));
+  }, []);
+
+  // ===== MEMOIZED VALUES AVEC CORRECTION DES FILTRES =====
+  const filteredData = useMemo(() => {
+    const parks = ui.showParks ? parksData : [];
+    const users = ui.showUsers ? usersData : [];
+    
+    console.log('[Geography] Données filtrées - Parcs:', parks.length, 'Utilisateurs:', users.length);
+    
+    return { parks, users };
+  }, [ui.showParks, ui.showUsers, parksData, usersData]);
 
   const specialtyStats = useMemo(() => {
     return Object.entries(stats.specialtiesCount).map(([key, count]) => ({
       key,
-      label: SPECIALTIES[key],
+      label: SPECIALTIES[key] || key,
       count,
       percentage: stats.totalUsers > 0 ? ((count / stats.totalUsers) * 100).toFixed(1) : 0
     }));
@@ -727,7 +722,14 @@ const Geography = () => {
   // ===== EFFECTS =====
   useEffect(() => {
     loadAllData();
-  }, [loadAllData]);
+  }, []); // Exécuter une seule fois au montage
+
+  // Effect pour mettre à jour les stats quand les données changent
+  useEffect(() => {
+    if (parksData.length > 0 || usersData.length > 0) {
+      updateStats(parksData, usersData);
+    }
+  }, [parksData, usersData, updateStats]);
 
   // ===== RENDER =====
   return (
@@ -761,11 +763,13 @@ const Geography = () => {
         {/* Section Carte */}
         <div className="map-section">
           <GeographyChart
-            parksData={filteredParksData}
-            usersData={filteredUsersData}
+            parksData={filteredData.parks}
+            usersData={filteredData.users}
             onMapReady={setMap}
             enableNDVICalculation={ui.ndviCalculationMode === 'realistic'}
             className="geography-map"
+            activeAgentTypes={filters.activeAgentTypes}
+            activeNdviRange={filters.activeNdviRange}
           />
           <NdviLegend showNdvi={ui.showParks} showAgents={ui.showUsers} />
           {ui.loading && (
@@ -794,7 +798,7 @@ const Geography = () => {
                     variant={ui.showParks ? "filled" : "outlined"}
                     color="success"
                     active={ui.showParks}
-                    onClick={() => setUi(prev => ({ ...prev, showParks: !prev.showParks }))}
+                    onClick={() => handleLayerToggle('showParks')}
                     icon={ui.showParks ? Eye : EyeOff}
                   />
                   <Chip
@@ -802,7 +806,7 @@ const Geography = () => {
                     variant={ui.showUsers ? "filled" : "outlined"}
                     color="primary"
                     active={ui.showUsers}
-                    onClick={() => setUi(prev => ({ ...prev, showUsers: !prev.showUsers }))}
+                    onClick={() => handleLayerToggle('showUsers')}
                     icon={ui.showUsers ? Eye : EyeOff}
                   />
                 </div>
@@ -820,14 +824,14 @@ const Geography = () => {
                     variant={ui.ndviCalculationMode === 'realistic' ? "filled" : "outlined"}
                     color="success"
                     active={ui.ndviCalculationMode === 'realistic'}
-                    onClick={() => setUi(prev => ({ ...prev, ndviCalculationMode: 'realistic' }))}
+                    onClick={() => handleCalculationModeChange('realistic')}
                   />
                   <Chip
                     label="Aléatoire"
                     variant={ui.ndviCalculationMode === 'random' ? "filled" : "outlined"}
                     color="primary"
                     active={ui.ndviCalculationMode === 'random'}
-                    onClick={() => setUi(prev => ({ ...prev, ndviCalculationMode: 'random' }))}
+                    onClick={() => handleCalculationModeChange('random')}
                   />
                 </div>
               </div>
@@ -937,6 +941,7 @@ const Geography = () => {
                 </div>
               </div>
             )}
+          
           </div>
         </div>
       </div>

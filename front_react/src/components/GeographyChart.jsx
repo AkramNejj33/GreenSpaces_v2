@@ -137,7 +137,7 @@ const MapUtils = {
     return NDVI_COLOR_MAP[NDVI_COLOR_MAP.length - 1].color;
   },
 
-  // DivIcon local (pas d’images distantes)
+  // DivIcon local (pas d'images distantes)
   createUserIcon: (specialtyKey = 'autre') => {
     const cfg = USER_ICON_CONFIG[specialtyKey] || USER_ICON_CONFIG.autre;
     const letter = (specialtyKey || 'A').charAt(0).toUpperCase();
@@ -272,6 +272,10 @@ const GeographyChart = React.memo(({
   const parksLayerRef = useRef(null);
   const usersLayerRef = useRef(null);
   const isInitializedRef = useRef(false);
+  
+  // *** CORRECTION 1: Ajout de refs pour éviter les conflits de mise à jour ***
+  const updateInProgressRef = useRef(false);
+  const lastUpdateRef = useRef({ parks: 0, users: 0 });
 
   const finalMapConfig = useMemo(() => ({ ...MAP_CONFIG, ...mapConfig }), [mapConfig]);
 
@@ -279,12 +283,12 @@ const GeographyChart = React.memo(({
     if (!enableNDVICalculation) return parksData;
     return parksData.map(feature => {
       if (feature?.properties?.ndvi !== undefined) return feature;
-      const realNDVI = NDVICalculator.generateRealisticNDVI(feature); // [-1..1]
+      const realNDVI = NDVICalculator.generateRealisticNDVI(feature);
       return {
         ...feature,
         properties: {
           ...feature.properties,
-          ndvi: Math.max(0, Math.min(1, (realNDVI + 1) / 2)) // → [0..1] pour couleurs
+          ndvi: Math.max(0, Math.min(1, (realNDVI + 1) / 2))
         }
       };
     });
@@ -341,23 +345,120 @@ const GeographyChart = React.memo(({
     }
   }, [finalMapConfig, onMapReady]);
 
-  const updateParksLayer = useCallback(() => {
+  // *** CORRECTION 2: Fonction pour calculer et ajuster les bounds intelligemment ***
+  const calculateAndApplyBounds = useCallback((parksToShow, usersToShow, forceUpdate = false) => {
     const map = mapInstanceRef.current;
-    const parksLayer = parksLayerRef.current;
-    if (!map || !parksLayer || !mapRef.current?.offsetParent) return;
+    if (!map || updateInProgressRef.current) return;
 
     try {
-      parksLayer.clearLayers();
-      if (!processedParksData?.length) return;
-
       const bounds = L.latLngBounds();
       let boundsCount = 0;
 
-      const data = wantedNdviRange
+      // Ajouter les bounds des parcs affichés
+      parksToShow.forEach((feature) => {
+        try {
+          const { geometry } = feature;
+          switch (geometry.type) {
+            case 'Point': {
+              const latLng = MapUtils.coordsToLatLng(geometry.coordinates);
+              if (latLng) {
+                bounds.extend(latLng);
+                boundsCount++;
+              }
+              break;
+            }
+            case 'Polygon': {
+              if (geometry.coordinates[0]?.length > 2) {
+                geometry.coordinates[0].forEach(coord => {
+                  const latLng = MapUtils.coordsToLatLng(coord);
+                  if (latLng) {
+                    bounds.extend(latLng);
+                    boundsCount++;
+                  }
+                });
+              }
+              break;
+            }
+            case 'MultiPolygon': {
+              geometry.coordinates.forEach(polygon => {
+                if (polygon[0]?.length > 2) {
+                  polygon[0].forEach(coord => {
+                    const latLng = MapUtils.coordsToLatLng(coord);
+                    if (latLng) {
+                      bounds.extend(latLng);
+                      boundsCount++;
+                    }
+                  });
+                }
+              });
+              break;
+            }
+            default: break;
+          }
+        } catch (error) {
+          console.warn('Erreur bounds parc:', error);
+        }
+      });
+
+      // Ajouter les bounds des utilisateurs affichés
+      usersToShow.forEach((feature) => {
+        try {
+          const latLng = MapUtils.coordsToLatLng(feature.geometry.coordinates);
+          if (latLng) {
+            bounds.extend(latLng);
+            boundsCount++;
+          }
+        } catch (error) {
+          console.warn('Erreur bounds utilisateur:', error);
+        }
+      });
+
+      // *** CORRECTION 3: Appliquer les bounds seulement si on a des données et que c'est justifié ***
+      if (boundsCount > 0 && bounds.isValid()) {
+        const shouldUpdate = forceUpdate || 
+          (parksToShow.length > 0 && usersToShow.length === 0) || // Seulement des parcs
+          (usersToShow.length > 0 && parksToShow.length === 0) || // Seulement des utilisateurs  
+          (parksToShow.length > 0 && usersToShow.length > 0);     // Les deux
+
+        if (shouldUpdate) {
+          setTimeout(() => {
+            try {
+              map.fitBounds(bounds, { 
+                padding: finalMapConfig.fitBoundsPadding, 
+                animate: true, 
+                duration: 0.5,
+                maxZoom: 16 // *** CORRECTION 4: Limiter le zoom pour éviter de trop zoomer ***
+              });
+            } catch (error) {
+              console.warn('Erreur fitBounds:', error);
+            }
+          }, 200);
+        }
+      }
+    } catch (error) {
+      console.error('Erreur calcul bounds:', error);
+    }
+  }, [finalMapConfig.fitBoundsPadding]);
+
+  const updateParksLayer = useCallback(() => {
+    const map = mapInstanceRef.current;
+    const parksLayer = parksLayerRef.current;
+    if (!map || !parksLayer || !mapRef.current?.offsetParent || updateInProgressRef.current) return;
+
+    try {
+      updateInProgressRef.current = true;
+      parksLayer.clearLayers();
+      
+      if (!processedParksData?.length) {
+        updateInProgressRef.current = false;
+        return;
+      }
+
+      const dataToShow = wantedNdviRange
         ? processedParksData.filter(f => MapUtils.bucketNdviRange(f.properties?.ndvi) === wantedNdviRange)
         : processedParksData;
 
-      data.forEach((feature, index) => {
+      dataToShow.forEach((feature, index) => {
         try {
           const { geometry, properties = {} } = feature;
           const coords = geometry.coordinates;
@@ -420,67 +521,67 @@ const GeographyChart = React.memo(({
             });
 
             layer.addTo(parksLayer);
-
-            try {
-              if (layer.getBounds?.()) {
-                const layerBounds = layer.getBounds();
-                if (layerBounds.isValid()) { bounds.extend(layerBounds); boundsCount++; }
-              } else if (layer.getLatLng?.()) {
-                bounds.extend(layer.getLatLng()); boundsCount++;
-              }
-            } catch (boundsError) {
-              console.warn('Erreur bounds parc:', boundsError);
-            }
           }
         } catch (featureError) {
           console.warn('Erreur traitement parc:', featureError);
         }
       });
 
-      if (boundsCount > 0 && bounds.isValid()) {
-        setTimeout(() => {
-          try {
-            map.fitBounds(bounds, { padding: finalMapConfig.fitBoundsPadding, animate: true, duration: 0.5 });
-          } catch (error) {
-            console.warn('Erreur fitBounds parcs:', error);
-          }
-        }, 160);
+      // *** CORRECTION 5: Mise à jour des bounds seulement si les données ont changé ***
+      if (lastUpdateRef.current.parks !== dataToShow.length) {
+        lastUpdateRef.current.parks = dataToShow.length;
+        
+        // Récupérer les utilisateurs actuellement affichés
+        const currentUsers = wantedAgentKeys.size > 0
+          ? usersData.filter(f => wantedAgentKeys.has(toSpecialtyKey(f.properties?.specialty || f.properties?.specialtyLabel)))
+          : usersData;
+        
+        calculateAndApplyBounds(dataToShow, currentUsers);
       }
+
+      updateInProgressRef.current = false;
     } catch (error) {
       console.error('Erreur maj parcs:', error);
+      updateInProgressRef.current = false;
     }
-  }, [processedParksData, finalMapConfig.fitBoundsPadding, wantedNdviRange]);
+  }, [processedParksData, wantedNdviRange, usersData, wantedAgentKeys, calculateAndApplyBounds]);
 
   const updateUsersLayer = useCallback(() => {
     const map = mapInstanceRef.current;
     const usersLayer = usersLayerRef.current;
-    if (!map || !usersLayer || !mapRef.current?.offsetParent) return;
+    if (!map || !usersLayer || !mapRef.current?.offsetParent || updateInProgressRef.current) return;
 
     try {
+      updateInProgressRef.current = true;
       usersLayer.clearLayers();
 
-      console.debug('[GeographyChart] usersData count =', usersData?.length);
+      if (!usersData?.length) {
+        updateInProgressRef.current = false;
+        return;
+      }
 
-      if (!usersData?.length) return;
+      // *** CORRECTION 6: Amélioration du filtrage des agents ***
+      const dataToShow = wantedAgentKeys.size > 0
+        ? usersData.filter(feature => {
+            const specialty = feature.properties?.specialty || feature.properties?.specialtyLabel;
+            const skey = toSpecialtyKey(specialty);
+            return wantedAgentKeys.has(skey);
+          })
+        : usersData;
 
-      const bounds = L.latLngBounds();
-      let boundsCount = 0;
+      console.debug('[GeographyChart] Agents à afficher:', dataToShow.length, 'sur', usersData.length);
 
-      usersData.forEach((feature) => {
+      dataToShow.forEach((feature) => {
         try {
           const { geometry, properties = {} } = feature;
-
-          const latLng = MapUtils.coordsToLatLng(geometry.coordinates); // [lng,lat] -> [lat,lng]
+          const latLng = MapUtils.coordsToLatLng(geometry.coordinates);
+          
           if (!latLng) {
-            console.warn('Coordonnées invalides (attendu GeoJSON [lng,lat]) =>', geometry.coordinates);
+            console.warn('Coordonnées agent invalides:', geometry.coordinates);
             return;
           }
 
           const skey = toSpecialtyKey(properties.specialty || properties.specialtyLabel);
-
-          // filtre agent si actif
-          if (wantedAgentKeys.size > 0 && !wantedAgentKeys.has(skey)) return;
-
           const marker = L.marker(latLng, {
             icon: MapUtils.createUserIcon(skey),
             riseOnHover: true,
@@ -494,46 +595,90 @@ const GeographyChart = React.memo(({
           marker.on('mouseout', function () { this.setZIndexOffset(1000); });
 
           marker.addTo(usersLayer);
-          bounds.extend(latLng);
-          boundsCount++;
         } catch (error) {
           console.warn('Erreur ajout utilisateur:', error);
         }
       });
 
-      if (bounds.isValid() && boundsCount > 0) {
-        setTimeout(() => {
-          try {
-            map.fitBounds(bounds, { padding: finalMapConfig.fitBoundsPadding, animate: true, duration: 0.6 });
-          } catch (error) {
-            console.warn('Erreur fitBounds utilisateurs:', error);
-          }
-        }, 220);
+      // *** CORRECTION 7: Mise à jour des bounds seulement si nécessaire ***
+      if (lastUpdateRef.current.users !== dataToShow.length) {
+        lastUpdateRef.current.users = dataToShow.length;
+        
+        // Récupérer les parcs actuellement affichés
+        const currentParks = wantedNdviRange
+          ? processedParksData.filter(f => MapUtils.bucketNdviRange(f.properties?.ndvi) === wantedNdviRange)
+          : processedParksData;
+        
+        calculateAndApplyBounds(currentParks, dataToShow);
       }
+
+      updateInProgressRef.current = false;
     } catch (error) {
       console.error('Erreur maj utilisateurs:', error);
+      updateInProgressRef.current = false;
     }
-  }, [usersData, finalMapConfig.fitBoundsPadding, wantedAgentKeys]);
+  }, [usersData, wantedAgentKeys, processedParksData, wantedNdviRange, calculateAndApplyBounds]);
 
-  // ===== Effects =====
+  // *** CORRECTION 8: Gestion intelligente des effects avec debouncing ***
   useEffect(() => {
     const initTimer = setTimeout(initializeMap, 50);
     return () => clearTimeout(initTimer);
   }, [initializeMap]);
 
   useEffect(() => {
-    const timer = setTimeout(updateParksLayer, 120);
+    if (!isInitializedRef.current) return;
+    
+    const timer = setTimeout(() => {
+      if (!updateInProgressRef.current) {
+        updateParksLayer();
+      }
+    }, 150);
+    
     return () => clearTimeout(timer);
   }, [updateParksLayer]);
 
   useEffect(() => {
-    const timer = setTimeout(updateUsersLayer, 150);
+    if (!isInitializedRef.current) return;
+    
+    const timer = setTimeout(() => {
+      if (!updateInProgressRef.current) {
+        updateUsersLayer();
+      }
+    }, 200);
+    
     return () => clearTimeout(timer);
   }, [updateUsersLayer]);
+
+  // *** CORRECTION 9: Effect pour forcer une mise à jour des bounds lors d'un changement de filtre majeur ***
+  useEffect(() => {
+    if (!isInitializedRef.current || updateInProgressRef.current) return;
+    
+    const timer = setTimeout(() => {
+      const currentParks = wantedNdviRange
+        ? processedParksData.filter(f => MapUtils.bucketNdviRange(f.properties?.ndvi) === wantedNdviRange)
+        : processedParksData;
+      
+      const currentUsers = wantedAgentKeys.size > 0
+        ? usersData.filter(feature => {
+            const specialty = feature.properties?.specialty || feature.properties?.specialtyLabel;
+            const skey = toSpecialtyKey(specialty);
+            return wantedAgentKeys.has(skey);
+          })
+        : usersData;
+      
+      // Force la mise à jour des bounds si on a des données à afficher
+      if (currentParks.length > 0 || currentUsers.length > 0) {
+        calculateAndApplyBounds(currentParks, currentUsers, true);
+      }
+    }, 300);
+    
+    return () => clearTimeout(timer);
+  }, [wantedAgentKeys, wantedNdviRange, processedParksData, usersData, calculateAndApplyBounds]);
 
   useEffect(() => {
     return () => {
       try {
+        updateInProgressRef.current = false;
         if (mapInstanceRef.current) {
           mapInstanceRef.current.remove();
           mapInstanceRef.current = null;
