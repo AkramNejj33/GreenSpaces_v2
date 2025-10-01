@@ -98,6 +98,7 @@ INSTALLED_APPS = [
     'corsheaders',
     'chatbot',
     'green_spaces',
+    'django_filters',
 ]
 
 MIDDLEWARE = [
